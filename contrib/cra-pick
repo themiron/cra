@@ -1,15 +1,15 @@
 #!/bin/sh
 #
-# 'tig-pick' is a wrapper script that uses 'tig' to pick a Git commit from the
+# 'cra-pick' is a wrapper script that uses 'cra' to pick an Arc commit from the
 # history. On success, The script prints the ID of the commit to standard
 # output, so that it can be used as a parameter for subsequent commands, e.g.
-# 'git rebase -i $(tig-pick)'
+# 'arc show $(cra-pick)'
 #
 # In order to be able to display the interface and to catch the commit ID
-# (easily) at the same time, 'tig' has to be run with the standard and error
+# (easily) at the same time, 'cra' has to be run with the standard and error
 # output channels swapped.
 #
-# All parameters passed to the script will be forwarded to 'tig'.
+# All parameters passed to the script will be forwarded to 'cra'.
 #
 
 
@@ -19,10 +19,10 @@ CONFIG=$(mktemp)
 trap "rm -f '$CONFIG'" EXIT
 
 # Prepare config file: source user config, if present
-if [ ! -z "$TIGRC_USER" ]; then
-	echo "source $TIGRC_USER" >> "$CONFIG"
-elif [ -f "$HOME/.tigrc" ]; then
-	echo "source $HOME/.tigrc" >> "$CONFIG"
+if [ -n "$CRARC_USER" ]; then
+	echo "source $CRARC_USER" >> "$CONFIG"
+elif [ -f "$HOME/.crarc" ]; then
+	echo "source $HOME/.crarc" >> "$CONFIG"
 fi
 
 # Bind Enter to print the selected commit ID to error output and exit after
@@ -30,9 +30,9 @@ fi
 echo 'bind main <Enter> <sh -c "echo %(commit) >&2"' >> "$CONFIG"
 
 
-# Run tig with the standard and error output channels swapped.
-export TIGRC_USER=$CONFIG
-stderr=$(tig "$@" 3>&2 2>&1 1>&3 3>&-) || {
+# Run cra with the standard and error output channels swapped.
+export CRARC_USER=$CONFIG
+stderr=$(cra "$@" 3>&2 2>&1 1>&3 3>&-) || {
 	status=$?
 	echo "$stderr" >&2
 	exit $status

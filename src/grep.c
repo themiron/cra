@@ -97,7 +97,7 @@ grep_select(struct view *view, struct line *line)
 }
 
 static const char *grep_args[] = {
-	"git", "grep", "--no-color", "-n", "-z", "--full-name", NULL
+	"rg", "--null", "--line-number", "--color=never", NULL
 };
 
 static const char **grep_argv;
@@ -242,7 +242,7 @@ grep_read(struct view *view, struct buffer *buf, bool force_stop)
 		return add_line_nodata(view, LINE_DELIMITER) != NULL;
 
 	lineno = io_memchr(buf, buf->data, 0);
-	text = io_memchr(buf, lineno, 0);
+	text = lineno ? strchr(lineno, ':') : NULL;
 
 	/*
 	 * No data indicates binary file matches, e.g.:
@@ -252,6 +252,7 @@ grep_read(struct view *view, struct buffer *buf, bool force_stop)
 	 */
 	if (!lineno || !text)
 		return true;
+	*text++ = 0;
 
 	textlen = strlen(text);
 

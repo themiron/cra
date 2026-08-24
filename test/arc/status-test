@@ -1,0 +1,26 @@
+#!/bin/sh
+#
+# Test Arc branch status without a physical metadata directory.
+
+. libtest.sh
+. libarc.sh
+
+steps ':save-display status.screen'
+
+mock_arc
+test_tig status
+
+grep '^On branch' status.screen > branch
+assert_equals branch strict <<EOF
+On branch feature/test. Your branch is up-to-date with 'example/trunk'.
+EOF
+
+mock_arc ''
+test_tig status
+
+grep '^HEAD detached at' status.screen > detached
+assert_equals detached strict <<EOF
+HEAD detached at 1111111111111111111111111111111111111111
+EOF
+
+assert_equals stderr < /dev/null

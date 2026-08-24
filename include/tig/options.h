@@ -27,7 +27,7 @@ struct view_column;
 typedef struct view_column *view_settings;
 
 #ifndef TIG_USER_CONFIG
-#define TIG_USER_CONFIG "~/.tigrc"
+#define TIG_USER_CONFIG "~/.crarc"
 #endif
 
 #define OPTION_INFO(_) \

@@ -1,6 +1,6 @@
 {
   "gitbook": "3.2.x",
-  "title": "Tig - Text-mode interface for Git",
+  "title": "Cra - Text-mode interface for Arc",
   "structure": {
      "readme": "README.adoc",
      "summary": "book.md"

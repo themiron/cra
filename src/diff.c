@@ -26,11 +26,9 @@ static enum status_code
 diff_open(struct view *view, enum open_flags flags)
 {
 	const char *diff_argv[] = {
-		"git", "show", encoding_arg, "--pretty=fuller", "--root",
-			"--patch-with-stat", use_mailmap_arg(),
-			show_notes_arg(), diff_context_arg(), ignore_space_arg(),
-			DIFF_ARGS, "%(cmdlineargs)", "--no-color", word_diff_arg(),
-			"%(commit)", "--", "%(fileargs)", NULL
+		"arc", "show", "--git", diff_context_arg(),
+			ignore_space_arg(), "%(cmdlineargs)", "--no-color",
+			"%(commit)", "%(fileargs)", NULL
 	};
 	enum status_code code;
 
@@ -564,8 +562,9 @@ diff_read(struct view *view, struct buffer *buf, bool force_stop)
 
 		diff_restore_line(view, state);
 
-		if (!state->adding_describe_ref && !ref_list_contains_tag(view->vid)) {
-			const char *describe_argv[] = { "git", "describe", "--tags", view->vid, NULL };
+		if (!view->unrefreshable && !view->env->stash[0] &&
+		    !state->adding_describe_ref && !ref_list_contains_tag(view->vid)) {
+			const char *describe_argv[] = { "arc", "tag", "--points-at", view->env->commit, NULL };
 			enum status_code code = begin_update(view, NULL, describe_argv, OPEN_EXTRA);
 
 			if (code != SUCCESS) {
@@ -584,42 +583,103 @@ diff_read(struct view *view, struct buffer *buf, bool force_stop)
 }
 
 static bool
+diff_blame_map_lineno(const char *from_ref, const char *from_file,
+		const char *to_ref, const char *to_file, unsigned long lineno,
+		unsigned long *mapped_lineno)
+{
+	char from[SIZEOF_REF + SIZEOF_STR];
+	char to[SIZEOF_REF + SIZEOF_STR];
+	const char *diff_argv[] = {
+		"arc", "diff", "--git", "-U0", from, to, NULL
+	};
+	struct io io;
+	struct buffer buf;
+	long offset = 0;
+	bool ok = true;
+	bool done = false;
+
+	if (!string_format(from, "%s:%s", from_ref, from_file) ||
+	    !string_format(to, "%s:%s", to_ref, to_file) ||
+	    !io_run(&io, IO_RD, repo.exec_dir, NULL, diff_argv))
+		return false;
+
+	while (io_get(&io, &buf, '\n', true)) {
+		struct chunk_header chunk;
+		unsigned long new_start;
+		unsigned long old_next;
+		unsigned long new_next;
+
+		if (!parse_chunk_header(&chunk, buf.data))
+			continue;
+		if (done)
+			continue;
+
+		/* A zero-length range is anchored on the line before it. */
+		new_start = chunk.new.position + !chunk.new.lines;
+		if (lineno < new_start) {
+			done = true;
+			continue;
+		}
+		if (chunk.new.lines && lineno < new_start + chunk.new.lines) {
+			ok = false;
+			done = true;
+			continue;
+		}
+
+		old_next = chunk.old.position +
+			(chunk.old.lines ? chunk.old.lines : 1);
+		new_next = chunk.new.position +
+			(chunk.new.lines ? chunk.new.lines : 1);
+		offset = (long)old_next - (long)new_next;
+	}
+
+	if (io_error(&io) || !io_done(&io))
+		ok = false;
+	if (!ok || (long)lineno + offset <= 0)
+		return false;
+
+	*mapped_lineno = (unsigned long)((long)lineno + offset);
+	return true;
+}
+
+static bool
 diff_blame_line(const char *ref, const char *file, unsigned long lineno,
 		struct blame_header *header, struct blame_commit *commit)
 {
-	char author[SIZEOF_STR] = "";
-	char committer[SIZEOF_STR] = "";
 	char line_arg[SIZEOF_STR];
+	char id[SIZEOF_REV] = "";
+	char filename[SIZEOF_STR] = "";
 	const char *blame_argv[] = {
-		"git", "blame", encoding_arg, "-p", line_arg, ref, "--", file, NULL
+		"arc", "blame", "-L", line_arg, "--json", ref, file, NULL
 	};
 	struct io io;
-	bool ok = false;
 	struct buffer buf;
 
-	if (!string_format(line_arg, "-L%lu,+1", lineno))
+	if (!string_format(line_arg, "%lu,%lu", lineno, lineno))
 		return false;
 
 	if (!io_run(&io, IO_RD, repo.exec_dir, NULL, blame_argv))
 		return false;
 
 	while (io_get(&io, &buf, '\n', true)) {
-		if (header) {
-			if (!parse_blame_header(header, buf.data))
-				break;
-			header = NULL;
-
-		} else if (parse_blame_info(commit, author, committer, buf.data)) {
-			ok = commit->filename != NULL;
-			break;
-		}
+		if (!id[0])
+			parse_json_string(buf.data, "\"commit\"", id, sizeof(id), false);
+		if (!filename[0])
+			parse_json_string(buf.data, "\"path\"", filename,
+					  sizeof(filename), false);
 	}
 
-	if (io_error(&io))
-		ok = false;
+	if (io_error(&io) || !io_done(&io) || !iscommit(id) || !filename[0])
+		return false;
 
-	io_done(&io);
-	return ok;
+	string_copy_rev(header->id, id);
+	header->orig_lineno = lineno;
+	diff_blame_map_lineno(id, filename, ref, file, lineno,
+		&header->orig_lineno);
+	header->lineno = lineno;
+	header->group = 1;
+	commit->filename = get_path(filename);
+	return commit->filename != NULL;
 }
 
 unsigned int

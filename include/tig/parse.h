@@ -51,6 +51,8 @@ struct blame_header {
 
 bool parse_blame_header(struct blame_header *header, const char *text);
 bool parse_blame_info(struct blame_commit *commit, char *author, char *committer, char *line);
+bool parse_json_string(const char *line, const char *name, char *value,
+		       size_t value_size, bool flatten_whitespace);
 
 /* Parse author lines where the name may be empty:
  *	author  <email@address.tld> 1138474660 +0100

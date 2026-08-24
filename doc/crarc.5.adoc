@@ -1,10 +1,10 @@
-tigrc(5)
+crarc(5)
 ========
 :docext: adoc
 
 NAME
 ----
-tigrc - Tig configuration file
+crarc - Cra configuration file
 
 
 SYNOPSIS
@@ -21,7 +21,7 @@ _______________________________________________________________________
 DESCRIPTION
 -----------
 
-You can permanently set an option by putting it in the `~/.tigrc` file.  The
+You can permanently set an option by putting it in the `~/.crarc` file.  The
 file consists of a series of 'commands'.  Each line of the file may contain
 only one command.  Commands can span multiple lines if each line is
 terminated by a backslash ('\') character. 
@@ -35,30 +35,30 @@ addition, options can also be toggled with the `:toggle` prompt command
 or by entering the configuration command into the prompt.
 
 In some environments, a user's configuration will be stored in the alternate
-location `$XDG_CONFIG_HOME/tig/config`.  For brevity, this document will
-refer only to `~/.tigrc`.
+location `$XDG_CONFIG_HOME/cra/config`.  For brevity, this document will
+refer only to `~/.crarc`.
 
-Git configuration
+Arc configuration
 -----------------
 
-Alternatively to using `~/.tigrc`, Tig options can be set by putting them in
-one of the Git configuration files, which are read by Tig on startup. See
-'git-config(1)' for which files to use. The following example shows the basic
+Alternatively to using `~/.crarc`, Cra options can be set by putting them in
+one of the Arc configuration files, which are read by Cra on startup. See
+'arc-config(1)' for which files to use. The following example shows the basic
 syntax to use for settings, bindings and colors.
 
 // TEST: gitconfig
 --------------------------------------------------------------------------
-[tig] show-changes = true
-[tig "color"] cursor = yellow red bold 
-[tig "bind"] generic = P parent
+[cra] show-changes = true
+[cra "color"] cursor = yellow red bold
+[cra "bind"] generic = P parent
 --------------------------------------------------------------------------
 
-In addition to tig-specific options, the following Git options are read from
-the Git configuration:
+In addition to cra-specific options, the following Arc options are read from
+the Arc configuration:
 
 'color.*'::
 
-	Colors for the various UI types. Can be configured via the 'git-colors'
+	Colors for the various UI types. Can be configured via the 'arc-colors'
 	setting.
 
 'core.abbrev'::
@@ -67,8 +67,8 @@ the Git configuration:
 
 'core.editor'::
 
-	The editor command. Can be overridden by setting TIG_EDITOR or
-	GIT_EDITOR.
+	The editor command. Can be overridden by setting CRA_EDITOR or
+	ARC_EDITOR.
 
 'core.worktree'::
 
@@ -98,7 +98,7 @@ Examples:
 // TEST: tigrc
 --------------------------------------------------------------------------
 set commit-order = topo		# Order commits topologically
-set git-colors = no		# Do not read Git's color settings.
+set arc-colors = no		# Do not read Arc's color settings.
 set horizontal-scroll = 33%	# Scroll 33% of the view width
 set blame-options = -C -C -C	# Blame lines from other files
 set log-options += --minimal  	# Use minimal diff algorithm
@@ -116,11 +116,11 @@ set blame-view = \
 	line-number:yes,interval=5 text
 --------------------------------------------------------------------------
 
-Or in the Git configuration files:
+Or in the Arc configuration files:
 
 // TEST: gitconfig
 --------------------------------------------------------------------------
-[tig]
+[cra]
 	line-graphics = no	# Disable graphics characters
 	tab-size = 8		# Number of spaces per tab
 --------------------------------------------------------------------------
@@ -153,30 +153,30 @@ The following variables can be set:
 'diff-options' (string)::
 
 	A space-separated string of diff options to use in the diff view.
-	git-show(1) is used for formatting and always passes --patch-with-stat.
+	arc-show(1) is used for formatting and always passes --patch-with-stat.
 	Can control display of commit header metadata, passing option --format.
-	This option overrides any options specified in the TIG_DIFF_OPTS
-	environment variable (described in manpage:tig[1]), but is itself
+	This option overrides any options specified in the CRA_DIFF_OPTS
+	environment variable (described in manpage:cra[1]), but is itself
 	overridden by diff flags given on the command line invocation.
 
 'blame-options' (string)::
 
 	A space-separated string of default blame options. Can be used for
-	telling git-blame(1) how to detect the origin of lines. The options
-	are ignored when Tig is started in blame mode and given blame options
+	telling arc-blame(1) how to detect the origin of lines. The options
+	are ignored when Cra is started in blame mode and given blame options
 	on the command line.
 
 'log-options' (string)::
 
 	A space-separated string of default options that should be passed to the
-	git-log(1) command used by the log view. Options can be overridden by
+	arc-log(1) command used by the log view. Options can be overridden by
 	command line options. Used internally to override custom `pretty.format'
 	settings that break the log view.
 
 'main-options' (string)::
 
 	A space-separated string of default options that should be passed to the
-	git-log(1) command used by the main view. Options can be overridden by
+	arc-log(1) command used by the main view. Options can be overridden by
 	command line options.
 
 'reference-format' (string)::
@@ -199,7 +199,7 @@ The following variables can be set:
 	 - branch		: A branch.
 	 - stash		: The stash.
 	 - note			: Notes.
-	 - prefetch		: Refs prefetched by `git maintenance`.
+	 - prefetch		: Refs prefetched by `arc maintenance`.
 	 - other		: Any other reference.
 
 'line-graphics' (mixed) [ascii|default|utf-8|auto|<bool>]::
@@ -221,16 +221,16 @@ The following variables can be set:
 	always ensured that at least one column is scrolled. The default is to
 	scroll '50%' of the view width.
 
-'git-colors' (list)::
+'arc-colors' (list)::
 
-	A space-separated list of "key=value" pairs where the key is a Git color
-	name and the value is a Tig color name, e.g. "branch.current=main-head"
+	A space-separated list of "key=value" pairs where the key is a Arc color
+	name and the value is a Cra color name, e.g. "branch.current=main-head"
 	and "grep.filename=grep.file". Set to "no" to disable.
 
 'show-notes' (mixed) [<reference>|<bool>]::
 
 	Whether to show notes for a commit. When set to a note reference the
-	reference is passed to `git show --notes=`. Notes are enabled by
+	reference is passed to `arc show --notes=`. Notes are enabled by
 	default.
 
 'show-changes' (bool)::
@@ -267,11 +267,11 @@ The following variables can be set:
 'status-show-untracked-dirs' (bool)::
 
 	Show untracked directory contents in the status view (analogous to
-	`git ls-files --directory` option). On by default.
+	`arc ls-files --directory` option). On by default.
 
 'status-show-untracked-files' (bool)::
 
-	Show untracked files in the status view (mirrors Git's
+	Show untracked files in the status view (mirrors Arc's
 	`status.showUntrackedFiles` option). On by default.
 
 'tab-size' (int)::
@@ -288,7 +288,7 @@ The following variables can be set:
 
 'diff-highlight' (mixed)::
 
-	Whether to highlight diffs using Git's 'diff-highlight' program. Defaults
+	Whether to highlight diffs using Arc's 'diff-highlight' program. Defaults
 	to false. When set to true then 'diff-highlight' is used, else the option
 	value is used as the path. When this option is in effect, highlighted
 	regions are governed by `color diff-add-highlight` and
@@ -303,7 +303,7 @@ The following variables can be set:
 	Ignore space changes in diff view. By default no space changes are
 	ignored. Changing this to "all", "some" or "at-eol" is equivalent to
 	passing "--ignore-all-space", "--ignore-space" or
-	"--ignore-space-at-eol" respectively to `git diff` or `git show`. +
+	"--ignore-space-at-eol" respectively to `arc diff` or `arc show`. +
 	 +
 	*Warning:* when `ignore-space` is set to `some`, `all` or `at-eol`, then
 	the *status-update* and *status-revert* may fail when updating or
@@ -329,7 +329,7 @@ The following variables can be set:
 'mailmap' (bool)::
 
 	Read canonical name and email addresses for authors and committers from
-	`.mailmap`. Off by default. See `git-shortlog(1)`.
+	`.mailmap`. Off by default. See `arc-shortlog(1)`.
 
 'wrap-lines' (bool)::
 
@@ -361,7 +361,7 @@ The following variables can be set:
 
 'history-size' (int)::
 
-	Size of the persistent `~/.tig_history` file when compiled with readline
+	Size of the persistent `~/.cra_history` file when compiled with readline
 	support. Default is 500. Set to 0 to disable.
 
 'mouse' (bool)::
@@ -375,14 +375,14 @@ The following variables can be set:
 
 	Interval to scroll up or down using the mouse. The default is 3 lines.
 	Mouse support requires that ncurses itself support mouse events and that
-	you have enabled mouse support in ~/.tigrc with `set mouse = true`.
+	you have enabled mouse support in ~/.crarc with `set mouse = true`.
 
 'mouse-wheel-cursor' (bool)::
 
 	Whether to prefer moving the cursor to scrolling the view when using the
 	mouse wheel. Off by default. Combines well with `set mouse-scroll = 1`.
 	Mouse support requires that ncurses itself support mouse events and that
-	you have enabled mouse support in ~/.tigrc with `set mouse = true`.
+	you have enabled mouse support in ~/.crarc with `set mouse = true`.
 
 'pager-autoscroll' (bool)::
 
@@ -395,11 +395,11 @@ The following variables can be set:
 
 'pgrp' (bool)::
 
-	Make tig the process-group leader when starting and clean all processes
+	Make cra the process-group leader when starting and clean all processes
 	when exiting. Off by default. Do not enable this option if you are
 	using a Zsh version affected by zsh-workers/43379. Run `xclip` with
-	`setsid` to keep clipboard content after exiting tig. If you are using
-	git-credential-cache helper, set option `credentialCache.ignoreSIGHUP`.
+	`setsid` to keep clipboard content after exiting cra. If you are using
+	arc-credential-cache helper, set option `credentialCache.ignoreSIGHUP`.
 
 'start-on-head' (bool)::
 
@@ -423,12 +423,12 @@ The following variables can be set:
 'file-args' (args)::
 
 	Command line arguments referring to files. These are filtered using
-	`git-rev-parse(1)`.
+	`arc-rev-parse(1)`.
 
 'rev-args' (args)::
 
 	Command line arguments referring to revisions. These are filtered using
-	`git-rev-parse(1)`.
+	`arc-rev-parse(1)`.
 
 View settings
 ~~~~~~~~~~~~~
@@ -447,7 +447,7 @@ enum value. For example, `file-name` will automatically have its 'display'
 setting resolve to 'auto'.
 
 Specifications can also be given for a single column, for example to override
-the defaults in the system tigrc file. To override a single column, use the
+the defaults in the system crarc file. To override a single column, use the
 column name as a suffix after the view setting name, e.g. `main-view-date` will
 allow setting the date in the main view.
 
@@ -458,7 +458,7 @@ Examples:
 set blame-view = date:default author:full committer:no file-name:auto \
 		 id:yes,color line-number:yes,interval=5 text
 
-# Change grep view to be similar to `git grep` format
+# Change grep view to be similar to `arc grep` format
 set grep-view = file-name:yes line-number:yes,interval=1 text
 
 # Show file sizes as units
@@ -472,7 +472,7 @@ set pager-view = line-number:yes,interval=10 text
 set main-view-date = custom
 set main-view-date-format = "%Y-%m-%d %H:%M"
 set blame-view-line-number = no
-# Use Git's default commit order, even when the commit graph is enabled.
+# Use Arc's default commit order, even when the commit graph is enabled.
 set commit-order = default
 --------------------------------------------------------------------------
 
@@ -534,7 +534,7 @@ date::
 file-name::
 	- 'display' (mixed) [auto|always|<bool>]: When to display file names.
 	  If set to "auto" file names are shown only when needed, e.g. when
-	  running: tig blame -C <file>.
+	  running: cra blame -C <file>.
 	- 'width' (int): Width of the column. When set to zero, the width is
 	  automatically sized to fit the content.
 	- 'maxwidth' (int): Maximum width of the column. Permit automatically
@@ -551,8 +551,8 @@ file-size::
 
 id::
 	- 'display' (bool): Whether to show commit IDs in the main view.
-	- 'width' (int): Fixed width for the commit ID column. When unset Tig
-	  will use the value of 'core.abbrev' if found. See git-config(1) on how
+	- 'width' (int): Fixed width for the commit ID column. When unset Cra
+	  will use the value of 'core.abbrev' if found. See arc-config(1) on how
 	  to set 'core.abbrev'. When set to zero the width is automatically sized
 	  to fit the content of reflog (e.g.  `ref/stash@{4}`) IDs and otherwise
 	  defaults to 7.
@@ -611,27 +611,27 @@ Examples:
 # Add keybinding to quickly jump to the next diff chunk in the stage view
 bind stage <Enter> :/^@@
 
-# Disable the default mapping for running git-gc
+# Disable the default mapping for running arc-gc
 bind generic G none
 
 # User-defined external command to amend the last commit
-bind status + !git commit --amend
+bind status + !arc commit --amend
 
-# User-defined internal command that reloads ~/.tigrc
-bind generic S :source ~/.tigrc
+# User-defined internal command that reloads ~/.crarc
+bind generic S :source ~/.crarc
 
 # UTF8-encoded characters can be used as key values.
 bind generic ø @sh -c "printf '%s' %(commit) | pbcopy"
 --------------------------------------------------------------------------
 
-Or in the Git configuration files:
+Or in the Arc configuration files:
 // TEST: gitconfig
 --------------------------------------------------------------------------
-[tig "bind"]
+[cra "bind"]
 	# 'unbind' the default quit key binding
 	generic = Q none
 	# Cherry-pick current commit onto current branch
-	main = C !git cherry-pick %(commit)
+	main = C !arc cherry-pick %(commit)
 --------------------------------------------------------------------------
 
 Keys are mapped by first searching the keybindings for the current view, then
@@ -644,7 +644,7 @@ Clear keybinding (unbind) from all keymaps at once with bind *generic* 'key'
 
 Keybindings at the line-entry prompt are typically governed by the readline
 library, and are configured separately in `~/.inputrc`.  See 'readline(1)'.
-Tig respects but does not require an `$if tig` section in `~/.inputrc`.
+Cra respects but does not require an `$if cra` section in `~/.inputrc`.
 
 --
 
@@ -688,7 +688,7 @@ bind main <ShiftTab>	parent
 
 Notes
 
-- Tig reads keystrokes via ncurses and is subject to various limitations. See
+- Cra reads keystrokes via ncurses and is subject to various limitations. See
   'ncurses(3x)' and 'terminfo(5)' (or termcap).
 
 - `Ctrl-m` and `Ctrl-i` cannot be bound as they conflict with 'Enter' and 'Tab'
@@ -703,8 +703,8 @@ Notes
 - Only some subset of special symbolic keys such as `<ShiftTab>` will be
   available in any given terminal emulator.
 
-- `Ctrl-z` is automatically used for process control and will suspend Tig and
-  open a subshell (use `fg` to reenter Tig).
+- `Ctrl-z` is automatically used for process control and will suspend Cra and
+  open a subshell (use `fg` to reenter Cra).
 
 Actions::
 
@@ -726,15 +726,15 @@ the command that should be executed.
 |+			|Run the command synchronously, and echo the first line
 			 of output to the status bar.
 |?			|Prompt the user before executing the command.
-|<			|Exit Tig after executing the command.
-|>			|Re-open Tig instantly in the last displayed view after
+|<			|Exit Cra after executing the command.
+|>			|Re-open Cra instantly in the last displayed view after
 			 executing the command.
 |=============================================================================
 
 Unless otherwise specified, commands are run in the foreground with their
 console output shown (as if '!' was specified). When multiple command options
-are specified their behavior is combined, e.g. "?<git commit" will prompt the
-user whether to execute the command and will exit Tig after completion.
+are specified their behavior is combined, e.g. "?<arc commit" will prompt the
+user whether to execute the command and will exit Cra after completion.
 
 Note that if you want to use pipes or redirection in your commands then you
 must run them in a subshell, i.e. embed your commands in `sh -c '<commands>'`.
@@ -742,7 +742,7 @@ must run them in a subshell, i.e. embed your commands in `sh -c '<commands>'`.
 Browsing state variables
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-User-defined commands can optionally refer to Tig's internal state using the
+User-defined commands can optionally refer to Cra's internal state using the
 following variable names, which are substituted before commands are run:
 
 [frame="none",grid="none",cols="25<m,75<"]
@@ -769,7 +769,7 @@ following variable names, which are substituted before commands are run:
 |%(revargs)		|The revision arguments passed on the command line.
 |%(fileargs)		|The file arguments passed on the command line.
 |%(cmdlineargs)		|All other options passed on the command line.
-|%(diffargs)		|Options from 'diff-options' or 'TIG_DIFF_OPTS' used
+|%(diffargs)		|Options from 'diff-options' or 'CRA_DIFF_OPTS' used
 			 by the diff and stage view.
 |%(blameargs)		|Options from 'blame-options' used by the blame view.
 |%(logargs)		|Options from 'log-options' used by the log view.
@@ -787,10 +787,10 @@ following variable names, which are substituted before commands are run:
 			 e.g. `../`
 |%(repo:prefix)		|The path prefix of the current work directory,
 			 e.g. `subdir/`.
-|%(repo:git-dir)	|The path to the Git directory, e.g. `/src/repo/.git`.
+|%(repo:arc-dir)	|The path to the Arc directory, e.g. `/src/repo/.arc`.
 |%(repo:worktree)	|The worktree path, if defined.
 |%(repo:is-inside-work-tree)
-			|Whether Tig is running inside a work tree,
+			|Whether Cra is running inside a work tree,
 			 either `true` or `false`.
 |=============================================================================
 
@@ -799,13 +799,13 @@ Examples:
 --------------------------------------------------------------------------
 # Save the current commit as a patch file when the user selects a commit
 # in the main view and presses 'S'.
-bind main S !git format-patch -1 %(commit)
+bind main S !arc format-patch -1 %(commit)
 
 # Create and checkout a new branch; specify custom prompt
-bind main B ?git checkout -b "%(prompt Enter new branch name: )"
+bind main B ?arc checkout -b "%(prompt Enter new branch name: )"
 
 # Show commit statistics for the author under the cursor
-bind main U +sh -c 'git --no-pager shortlog -s --author="$(git show -s --format=%aE %(commit))" </dev/tty'
+bind main U +sh -c 'arc --no-pager shortlog -s --author="$(arc show -s --format=%aE %(commit))" </dev/tty'
 --------------------------------------------------------------------------
 
 Advanced shell-like commands
@@ -821,43 +821,43 @@ using a shell command:
 bind generic I @sh -c "echo -n %(commit) | xclip -selection c"
 --------------------------------------------------------------------------
 
-Or by using a combination of Git aliases and Tig external commands. The
-following example entries can be put in either the .gitconfig or .git/config
+Or by using a combination of Arc aliases and Cra external commands. The
+following example entries can be put in either the .gitconfig or .arc/config
 file:
 
-.Git configuration which binds Tig keys to Git command aliases.
+.Arc configuration which binds Cra keys to Arc command aliases.
 // TEST: gitconfig
 --------------------------------------------------------------------------
 [alias]
-	gitk-bg = !"gitk HEAD --not $(git rev-parse --remotes) &"
-	publish = !"for i in origin public; do git push $i; done"
-[tig "bind"]
-	generic = V @git gitk-bg
-	generic = > !git publish
+	gitk-bg = !"gitk HEAD --not $(arc rev-parse --remotes) &"
+	publish = !"for i in origin public; do arc push $i; done"
+[cra "bind"]
+	generic = V @arc gitk-bg
+	generic = > !arc publish
 --------------------------------------------------------------------------
 
 Internal user-defined commands
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Actions beginning with a ':' will be run and interpreted as internal commands
-and act similar to commands run via Tig's prompt. Valid internal commands are
+and act similar to commands run via Cra's prompt. Valid internal commands are
 configuration file options (as described in this document) and pager view
 commands. Examples:
 
 // TEST: tigrc
 --------------------------------------------------------------------------
-# Reload ~/.tigrc when 'S' is pressed
-bind generic S :source .tigrc
+# Reload ~/.crarc when 'S' is pressed
+bind generic S :source .crarc
 
 # Change diff view to show all commit changes regardless of file limitations
 bind diff F :set diff-options = --full-diff
 
-# Show the output of git-reflog(1) in the pager view
-bind generic W :!git reflog
+# Show the output of arc-reflog(1) in the pager view
+bind generic W :!arc reflog
 
 # Search for previous diff (c)hunk and next diff header
 bind stage 2 :?^@@
-bind stage D :/^diff --(git|cc)
+bind stage D :/^diff --(arc|cc)
 
 bind main I :toggle id				# Show/hide the ID column
 bind diff D :toggle diff-options --minimal	# Use minimal diff algorithm
@@ -1016,17 +1016,17 @@ color tree.date		black	cyan	bold
 color "/(note|warning|error):/"	yellow	default	bold
 --------------------------------------------------------------------------
 
-Or in the Git configuration files:
+Or in the Arc configuration files:
 // TEST: gitconfig
 --------------------------------------------------------------------------
-[tig "color"]
+[cra "color"]
 	# A strange looking cursor line
 	cursor		= red	default underline
 	# UI colors
 	title-blur	= white	blue
 	title-focus	= white	blue	bold
 # View-specific color
-[tig "color.tree"]
+[cra "color.tree"]
 	date		= cyan	default	bold
 --------------------------------------------------------------------------
 
@@ -1056,7 +1056,7 @@ This is useful when you remap the colors for your display or want to enable
 colors supported by 88-color and 256-color terminals. Note that the 'color'
 prefix is optional. If you prefer, you can specify colors directly by their
 numbers *0*, *1*, ..., *N-1* instead, just like in the configuration file of
-Git.
+Arc.
 
 Attribute names::
 
@@ -1118,7 +1118,7 @@ setting the *default* color option.
 |main-replace		|Label of replaced reference.
 |main-stash		|Label of the stash.
 |main-note		|Label of notes.
-|main-prefetch		|Label of reference prefetched by `git maintenance`.
+|main-prefetch		|Label of reference prefetched by `arc maintenance`.
 |main-other		|Label of any other reference.
 |=============================================================================
 
@@ -1150,9 +1150,9 @@ Options concerning diff start, chunks and lines added and deleted.
 *diff-header*, *diff-chunk*, *diff-stat*, *diff-add*, *diff-add2*,
 *diff-del*, *diff-del2*, *diff-add-highlight*, *diff-del-highlight*
 
-Enhanced Git diff markup::
+Enhanced Arc diff markup::
 
-Extra diff information emitted by the Git diff machinery, such as mode
+Extra diff information emitted by the Arc diff machinery, such as mode
 changes, rename detection, and similarity.
 
 *diff-oldmode*, *diff-newmode*, *diff-copy-from*, *diff-copy-to*,
@@ -1195,7 +1195,7 @@ Sourced files are included in-place, meaning when a 'source' command is
 encountered the file will be immediately read. Any commands later in the
 current configuration file will take precedence.
 
-If the given path does not exist, tig will proceed with a warning. Give
+If the given path does not exist, cra will proceed with a warning. Give
 the `-q` parameter to suppress the warning.
 
 The syntax is:
@@ -1206,8 +1206,8 @@ The syntax is:
 Examples:
 // TEST: tigrc
 --------------------------------------------------------------------------
-source ~/.tig/colorscheme.tigrc
-source ~/.tig/keybindings.tigrc
+source ~/.cra/colorscheme.crarc
+source ~/.cra/keybindings.crarc
 --------------------------------------------------------------------------
 
 COPYRIGHT
@@ -1222,12 +1222,12 @@ the Free Software Foundation; either version 2 of the License, or
 SEE ALSO
 --------
 ifndef::backend-docbook[]
-link:tig.1.{docext}[tig(1)],
-link:manual.{docext}[the Tig manual],
+link:cra.1.{docext}[cra(1)],
+link:manual.{docext}[the Cra manual],
 endif::backend-docbook[]
 ifdef::backend-docbook[]
-manpage:tig[1],
-manpage:tigmanual[7],
+manpage:cra[1],
+manpage:cramanual[7],
 endif::backend-docbook[]
-git(1), git-config(1)
+arc(1), arc-config(1)
 // vim: tw=80

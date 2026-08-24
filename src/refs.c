@@ -196,14 +196,6 @@ static const char **refs_argv;
 static enum status_code
 refs_open(struct view *view, enum open_flags flags)
 {
-	const char *refs_log[] = {
-		"git", "log", encoding_arg, "--no-color", "--date=raw",
-			opt_mailmap ? "--pretty=format:%H%x00%aN <%aE> %ad%x00%cN <%cE> %cd%x00%s"
-				    : "--pretty=format:%H%x00%an <%ae> %ad%x00%cn <%ce> %cd%x00%s",
-			"--all", "--decorate-refs=", "--simplify-by-decoration",
-			NULL
-	};
-	enum status_code code;
 	const char *name = REFS_ALL_NAME;
 	int i;
 
@@ -238,9 +230,7 @@ refs_open(struct view *view, enum open_flags flags)
 		refs_all = ref;
 	}
 
-	code = begin_update(view, NULL, refs_log, OPEN_RELOAD);
-	if (code != SUCCESS)
-		return code;
+	reset_view(view);
 
 	if (!view->lines)
 		if (!(view->sort.current = get_view_column(view, VIEW_COLUMN_REF)))

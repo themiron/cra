@@ -10,7 +10,7 @@ build_config_make() {
 	make test
 
 	make prefix=/tmp/bare-prefix install install-doc
-	/tmp/bare-prefix/bin/tig --version
+	/tmp/bare-prefix/bin/cra --version
 	make prefix=/tmp/bare-prefix uninstall
 	test ! -d /tmp/bare-prefix
 
@@ -23,12 +23,12 @@ build_autoconf() {
 	make V=1 TEST_SHELL=bash all test
 
 	make install install-doc
-	/tmp/conf-prefix/bin/tig --version
+	/tmp/conf-prefix/bin/cra --version
 	make uninstall
 	test ! -d /tmp/conf-prefix
 
 	make DESTDIR=/tmp/bare-destdir install install-doc
-	/tmp/bare-destdir/tmp/conf-prefix/bin/tig --version
+	/tmp/bare-destdir/tmp/conf-prefix/bin/cra --version
 	make DESTDIR=/tmp/bare-destdir uninstall
 	test ! -d /tmp/bare-destdir
 
@@ -45,13 +45,13 @@ build_valgrind() {
 	make all-debug test TEST_OPTS=valgrind
 }
 
-case "$TIG_BUILD" in
+case "$CRA_BUILD" in
 	config.make)		build_config_make ;;
 	autoconf)		build_autoconf ;;
 	address-sanitizer)	build_address_sanitizer ;;
 	valgrind)		build_valgrind ;;
 
 	*)
-		echo "Unknown config: $TIG_BUILD"
+		echo "Unknown config: $CRA_BUILD"
 		exit 1
 esac

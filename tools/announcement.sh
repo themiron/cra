@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Prepare the content of the next tig release announcement.
+# Prepare the content of the next Cra release announcement.
 # Usage: $0 [revision]
 #
 # Copyright (c) 2006-2026 Jonas Fonseca <jonas.fonseca@gmail.com>
@@ -18,7 +18,7 @@
 root="$(git rev-parse --show-cdup)"
 NEWS="${root}NEWS.adoc"
 README="${root}README.adoc"
-from="$(sed -n '7,/^tig-/p' < "$NEWS" | tail -n 1 | cut -d' ' -f 1)"
+from="$(sed -n '7,/^cra-/p' < "$NEWS" | tail -n 1 | cut -d' ' -f 1)"
 to="${1-HEAD}"
 short=
 
@@ -30,13 +30,13 @@ $(echo "$to" | sed 's/[0-9a-zA-Z.-]/=/g')
 
 *** text for the announcement ***
 
-$(sed -n '/What is tig?/,/^$/p' < "$README")
+$(sed -n '/What is Cra?/,/^$/p' < "$README")
 
 $(sed -n 's/\( -.*\)[[(].*/\1/p' < "$README")
 
 Release notes
 -------------
-$(sed -n '7,/^tig-/p' < "$NEWS" | sed '/^tig-/d')
+$(sed -n '7,/^cra-/p' < "$NEWS" | sed '/^cra-/d')
 
 Change summary
 --------------

@@ -1,0 +1,39 @@
+#!/bin/sh
+#
+# Smoke-test repository discovery against a mounted Arc working tree.
+
+. libtest.sh
+. libarc.sh
+
+use_arc_repo
+
+info="$(in_work_dir arc info --json)"
+head="$(printf '%s\n' "$info" | sed -n 's/.*"branch":"\([^"]*\)".*/\1/p')"
+head_id="$(printf '%s\n' "$info" | sed -n 's/.*"hash":"\([^"]*\)".*/\1/p')"
+remote="$(printf '%s\n' "$info" | sed -n 's/.*"repository":"\([^"]*\)".*/\1/p')"
+upstream="$(printf '%s\n' "$info" | sed -n 's/.*"remote":"\([^"]*\)".*/\1/p')"
+worktree="$(in_work_dir arc root)"
+
+[ -n "$head" ] && [ -n "$head_id" ] && [ -n "$remote" ] &&
+	[ -n "$upstream" ] && [ -n "$worktree" ] || die 'Incomplete arc info --json output'
+
+case "$upstream" in
+"$remote"/*) ;;
+*) upstream="$remote/$upstream" ;;
+esac
+
+steps "
+	:exec !assert-var [%(repo:head)] == [$head]
+	:exec !assert-var [%(repo:head-id)] == [$head_id]
+	:exec !assert-var [%(repo:remote)] == [$remote]
+	:exec !assert-var [%(repo:upstream)] == [$upstream]
+	:exec !assert-var [%(repo:git-dir)] == []
+	:exec !assert-var [%(repo:worktree)] == [$worktree]
+	:exec !assert-var [%(repo:is-inside-work-tree)] == [true]
+"
+
+stdin test
+test_tig
+
+assert_vars 7
+assert_equals stderr < /dev/null

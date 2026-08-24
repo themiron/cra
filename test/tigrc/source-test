@@ -5,7 +5,7 @@
 export LINES=10
 
 # Disable built-in configuration
-export TIGRC_SYSTEM=does-not-exist
+export CRARC_SYSTEM=does-not-exist
 
 file "$HOME/.tigrc.bind.q.for.help.screen" <<EOF
 bind generic q quit

@@ -227,7 +227,8 @@ watch_update_event(enum watch_event event, enum watch_trigger trigger,
 			continue;
 		}
 
-		if (*repo.git_dir &&
+		if ((repo.is_inside_work_tree || *repo.worktree) &&
+		    (handler->triggers & WATCH_INDEX) &&
 		    (trigger & handler->triggers) &&
 		    (changed | handler->triggers) != changed)
 			changed |= handler->check(handler, event, trigger);

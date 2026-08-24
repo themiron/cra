@@ -72,7 +72,7 @@ steps "
 	:save-display help.screen
 "
 
-TIGRC_SYSTEM="should-not-be-loaded"
+CRARC_SYSTEM="should-not-be-loaded"
 
 test_tig status
 

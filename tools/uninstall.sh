@@ -21,7 +21,7 @@ set -e
 file="$1"
 dir="$(dirname "$file")"
 
-if [ -d "$file" -a "$dir" = "tig" ]; then
+if [ -d "$file" -a "$dir" = "cra" ]; then
 	rm -rf "$file"
 elif [ -f "$file" ]; then
 	rm -f "$file"

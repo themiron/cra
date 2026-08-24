@@ -14,6 +14,7 @@
 #include "tig/tig.h"
 #include "tig/repo.h"
 #include "tig/io.h"
+#include "tig/parse.h"
 #include "tig/refdb.h"
 #include "tig/git.h"
 
@@ -25,6 +26,28 @@
 #define REPO_INFO_RESOLVED_HEAD	"HEAD"
 #define REPO_INFO_REMOTE	"--abbrev-ref"
 
+static bool
+set_repo_cdup(void)
+{
+	const char *path = repo.prefix;
+	size_t pos = 0;
+
+	repo.cdup[0] = 0;
+	while (*path) {
+		const char *end;
+
+		while (*path == '/')
+			path++;
+		if (!*path)
+			break;
+		end = strchr(path, '/');
+		if (!string_nformat(repo.cdup, sizeof(repo.cdup), &pos, "../"))
+			return false;
+		path = end ? end + 1 : path + strlen(path);
+	}
+	return true;
+}
+
 struct repo_info_state {
 	const char **argv;
 };
@@ -34,6 +57,19 @@ read_repo_info(char *name, size_t namelen, char *value, size_t valuelen, void *d
 {
 	struct repo_info_state *state = data;
 	const char *arg = *state->argv ? *state->argv++ : "";
+
+	if (parse_json_string(name, "\"repository\"", repo.remote,
+			      sizeof(repo.remote), false))
+		return SUCCESS;
+	if (parse_json_string(name, "\"branch\"", repo.head,
+			      sizeof(repo.head), false))
+		return SUCCESS;
+	if (parse_json_string(name, "\"hash\"", repo.head_id,
+			      sizeof(repo.head_id), false))
+		return SUCCESS;
+	if (parse_json_string(name, "\"remote\"", repo.upstream,
+			      sizeof(repo.upstream), false))
+		return SUCCESS;
 
 	if (!strcmp(arg, REPO_INFO_GIT_DIR)) {
 		string_ncopy(repo.git_dir, name, namelen);
@@ -96,37 +132,70 @@ reload_repo_info(const char **rev_parse_argv)
 	return io_run_load(&io, rev_parse_argv, "\n", read_repo_info, &state);
 }
 
+static enum status_code
+normalize_arc_repo_info(void)
+{
+	char remote[SIZEOF_REF];
+	char head[SIZEOF_STR];
+
+	if (repo.remote[0] && repo.upstream[0] &&
+	    (prefixcmp(repo.upstream, repo.remote) ||
+	     repo.upstream[strlen(repo.remote)] != '/')) {
+		string_copy(remote, repo.upstream);
+		if (!string_format(repo.upstream, "%s/%s", repo.remote, remote))
+			return ERROR_OUT_OF_MEMORY;
+	}
+	if (repo.head[0] && repo.head_id[0]) {
+		if (!string_format(head, "refs/heads/%s", repo.head))
+			return ERROR_OUT_OF_MEMORY;
+		return add_ref(repo.head_id, head, repo.upstream, repo.head);
+	}
+	return SUCCESS;
+}
+
+static enum status_code
+reload_arc_repo_info(const char **info_argv)
+{
+	enum status_code code = reload_repo_info(info_argv);
+
+	return code == SUCCESS ? normalize_arc_repo_info() : code;
+}
+
 enum status_code
 load_repo_info(void)
 {
-	const char *rev_parse_argv[] = {
-		"git", "rev-parse", REPO_INFO_GIT_DIR, REPO_INFO_WORK_TREE,
-			REPO_INFO_SHOW_CDUP, REPO_INFO_SHOW_PREFIX, \
-			REPO_INFO_RESOLVED_HEAD, REPO_INFO_SYMBOLIC_HEAD, "HEAD",
-			NULL
+	const char *root_argv[] = { ARC_PROGRAM, "root", NULL };
+	const char *prefix_argv[] = {
+		ARC_PROGRAM, "rev-parse", "--show-prefix", NULL
 	};
+	const char *info_argv[] = { ARC_PROGRAM, "info", "--json", NULL };
 
 	memset(&repo, 0, sizeof(repo));
-	return reload_repo_info(rev_parse_argv);
+	if (!io_run_buf(root_argv, repo.worktree, sizeof(repo.worktree), NULL, false) ||
+	    !io_run_buf(prefix_argv, repo.prefix, sizeof(repo.prefix), NULL, true))
+		return error("Not an arc working tree");
+	if (!set_repo_cdup())
+		return ERROR_OUT_OF_MEMORY;
+
+	repo.is_inside_work_tree = true;
+	string_copy(repo.exec_dir, repo.worktree);
+	return reload_arc_repo_info(info_argv);
 }
 
 enum status_code
 load_repo_head(void)
 {
-	const char *rev_parse_remote_argv[] = {
-		"git", "rev-parse", REPO_INFO_REMOTE, "@{upstream}", NULL
-	};
-	const char *rev_parse_argv[] = {
-		"git", "rev-parse", REPO_INFO_RESOLVED_HEAD,
-			REPO_INFO_SYMBOLIC_HEAD, "HEAD", NULL
-	};
+	const char *info_argv[] = { ARC_PROGRAM, "info", "--json", NULL };
+	enum status_code code;
 
 	memset(repo.remote, 0, sizeof(repo.remote));
 	memset(repo.upstream, 0, sizeof(repo.upstream));
-	reload_repo_info(rev_parse_remote_argv);
 	memset(repo.head, 0, sizeof(repo.head));
 	memset(repo.head_id, 0, sizeof(repo.head_id));
-	return reload_repo_info(rev_parse_argv);
+	code = reload_arc_repo_info(info_argv);
+	if (code != SUCCESS || !repo.head_id[0])
+		return error("Failed to resolve arc HEAD");
+	return SUCCESS;
 }
 
 struct repo_info repo;
@@ -138,21 +207,15 @@ struct repo_info repo;
 bool
 update_index(void)
 {
-	const char *update_index_argv[] = {
-		"git", "update-index", "-q", "--unmerged", "--refresh", NULL
-	};
-
-	return io_run_bg(update_index_argv, repo.exec_dir);
+	return true;
 }
 
 bool
 index_diff(struct index_diff *diff, bool untracked, bool count_all)
 {
-	const char *untracked_arg = !untracked ? "--untracked-files=no" :
-				     count_all ? "--untracked-files=all" :
-						 "--untracked-files=normal";
+	const char *untracked_arg = !untracked ? "no" : count_all ? "all" : "normal";
 	const char *status_argv[] = {
-		"git", "status", "--porcelain", "-z", untracked_arg, NULL
+		ARC_PROGRAM, "status", "--short", "-u", untracked_arg, NULL
 	};
 	struct io io;
 	struct buffer buf;
@@ -163,7 +226,7 @@ index_diff(struct index_diff *diff, bool untracked, bool count_all)
 	if (!io_run(&io, IO_RD, repo.exec_dir, NULL, status_argv))
 		return false;
 
-	while (io_get(&io, &buf, 0, true) && (ok = buf.size > 3)) {
+	while (io_get(&io, &buf, '\n', true) && (ok = buf.size > 3)) {
 		if (buf.data[0] == '?')
 			diff->untracked++;
 		/* Ignore staged but unmerged entries. */
@@ -175,10 +238,6 @@ index_diff(struct index_diff *diff, bool untracked, bool count_all)
 		    (!untracked || diff->untracked))
 			break;
 
-		/* Skip source filename in rename */
-		if (buf.data[0] == 'R') {
-			io_get(&io, &buf, 0, true);
-		}
 	}
 
 	if (io_error(&io))

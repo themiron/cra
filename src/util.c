@@ -69,7 +69,7 @@ warn(const char *msg, ...)
 	va_list args;
 
 	va_start(args, msg);
-	fputs("tig warning: ", stderr);
+	fputs("cra warning: ", stderr);
 	vfprintf(stderr, msg, args);
 	fputs("\n", stderr);
 	va_end(args);
@@ -85,7 +85,7 @@ die(const char *err, ...)
 		die_callback();
 
 	va_start(args, err);
-	fputs("tig: ", stderr);
+	fputs("cra: ", stderr);
 	vfprintf(stderr, err, args);
 	fputs("\n", stderr);
 	va_end(args);

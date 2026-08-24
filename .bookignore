@@ -5,7 +5,7 @@
 *-*
 COPYING
 Makefile
-tigrc
+crarc
 
 ## Whitelist AsciiDoc and GitBook files
 !*.adoc
@@ -13,4 +13,4 @@ tigrc
 !*.json
 
 # ... except the manual man-page
-doc/tigmanual.7.adoc
+doc/cramanual.7.adoc

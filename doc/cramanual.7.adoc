@@ -1,0 +1,20 @@
+cramanual(7)
+============
+
+NAME
+----
+cramanual - text-mode interface for Arc
+
+SYNOPSIS
+--------
+[verse]
+cra        [options] [revisions] [--] [paths]
+cra show   [options] [revisions] [--] [paths]
+cra blame  [options] [rev] [--] path
+cra status
+cra <      [Arc command output]
+
+DESCRIPTION
+-----------
+
+include::manual.adoc[]

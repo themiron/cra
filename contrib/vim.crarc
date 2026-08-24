@@ -1,10 +1,10 @@
-# Vim-style keybindings for Tig
+# Vim-style keybindings for Cra
 #
 # To use these keybindings copy the file to your HOME directory and include
-# it from your ~/.tigrc file:
+# it from your ~/.crarc file:
 #
-#	$ cp contrib/vim.tigrc ~/.tigrc.vim
-#	$ echo "source ~/.tigrc.vim" >> ~/.tigrc
+#	$ cp contrib/vim.crarc ~/.crarc.vim
+#	$ echo "source ~/.crarc.vim" >> ~/.crarc
 
 bind generic h scroll-left
 bind generic j move-down
@@ -69,8 +69,8 @@ bind generic up stage-update-part
 bind generic us stage-split-chunk
 
 bind generic c  none
-bind generic cc !git commit
-bind generic ca !?@git commit --amend --no-edit
+bind generic cc !arc commit
+bind generic ca !?@arc commit --amend --no-edit
 
 bind generic K view-help
 bind generic <C-w><C-w> view-next

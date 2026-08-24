@@ -458,7 +458,7 @@ static void
 readline_init(void)
 {
 	/* Allow conditional parsing of the ~/.inputrc file. */
-	rl_readline_name = "tig";
+	rl_readline_name = "cra";
 
 	/* Word break characters (we removed '(' to match variables) */
 	rl_basic_word_break_characters = " \t\n\"\\'`@$><=;|&{";
@@ -535,9 +535,9 @@ prompt_histfile(void)
 	int fd;
 
 	if (!xdg_data_home || !*xdg_data_home) {
-		if (!string_format(path, "%s/.local/share/tig/history", home))
+		if (!string_format(path, "%s/.local/share/cra/history", home))
 			die("Failed to expand $HOME");
-	} else if (!string_format(path, "%s/tig/history", xdg_data_home))
+	} else if (!string_format(path, "%s/cra/history", xdg_data_home))
 		die("Failed to expand $XDG_DATA_HOME");
 	else {
 		char path_copy[SIZEOF_STR];
@@ -548,7 +548,7 @@ prompt_histfile(void)
 	fd = open(path, O_RDWR | O_CREAT | O_APPEND, 0666);
 	if (fd > 0)
 		close(fd);
-	else if (!string_format(path, "%s/.tig_history", home))
+	else if (!string_format(path, "%s/.cra_history", home))
 		die("Failed to expand $HOME");
 
 	return path;
@@ -1024,7 +1024,7 @@ run_prompt_command(struct view *view, const char *argv[])
 		return REQ_NONE;
 
 	} else if (!strcmp(cmd, "save-display")) {
-		const char *path = argv[1] ? argv[1] : "tig-display.txt";
+		const char *path = argv[1] ? argv[1] : "cra-display.txt";
 
 		if (!save_display(path))
 			report("Failed to save screen to %s", path);
@@ -1032,7 +1032,7 @@ run_prompt_command(struct view *view, const char *argv[])
 			report("Saved screen to %s", path);
 
 	} else if (!strcmp(cmd, "save-view")) {
-		const char *path = argv[1] ? argv[1] : "tig-view.txt";
+		const char *path = argv[1] ? argv[1] : "cra-view.txt";
 
 		if (!save_view(view, path))
 			report("Failed to save view to %s", path);
@@ -1040,7 +1040,7 @@ run_prompt_command(struct view *view, const char *argv[])
 			report("Saved view to %s", path);
 
 	} else if (!strcmp(cmd, "save-options")) {
-		const char *path = argv[1] ? argv[1] : "tig-options.txt";
+		const char *path = argv[1] ? argv[1] : "cra-options.txt";
 		enum status_code code = save_options(path);
 
 		if (code != SUCCESS)

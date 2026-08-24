@@ -19,7 +19,6 @@
  * Encoding conversion.
  */
 
-#define ENCODING_SEP	": encoding: "
 #define ENCODING_ARG	"--encoding=" ENCODING_UTF8
 
 #define CHARSET_SEP	"; charset="
@@ -129,34 +128,17 @@ encoding_iconv(iconv_t iconv_cd, const char *string, size_t length)
 struct encoding *
 get_path_encoding(const char *path, struct encoding *default_encoding)
 {
-	const char *check_attr_argv[] = {
-		"git", "check-attr", "encoding", "--", path, NULL
+	const char *file_argv[] = {
+		"file", "--mime", "--", path, NULL
 	};
 	char buf[SIZEOF_STR];
 	char *encoding;
 
-	/* <path>: encoding: <encoding> */
-
-	if (!*path || !io_run_buf(check_attr_argv, buf, sizeof(buf), NULL, false)
-	    || !(encoding = strstr(buf, ENCODING_SEP)))
+	if (!*path || !io_run_buf(file_argv, buf, sizeof(buf), NULL, false)
+	    || !(encoding = strstr(buf, CHARSET_SEP)))
 		return default_encoding;
 
-	encoding += STRING_SIZE(ENCODING_SEP);
-	if (!strcmp(encoding, ENCODING_UTF8)
-	    || !strcmp(encoding, "unspecified")
-	    || !strcmp(encoding, "set")) {
-		const char *file_argv[] = {
-			"file", "--mime", "--", path, NULL
-		};
-
-		if (!*path || !io_run_buf(file_argv, buf, sizeof(buf), NULL, false)
-		    || !(encoding = strstr(buf, CHARSET_SEP)))
-			return default_encoding;
-
-		encoding += STRING_SIZE(CHARSET_SEP);
-	}
-
-	return encoding_open(encoding);
+	return encoding_open(encoding + STRING_SIZE(CHARSET_SEP));
 }
 
 /*
@@ -309,7 +291,7 @@ open_trace(int devnull, const char *argv[])
 	static const char *trace_file;
 
 	if (!trace_file) {
-		trace_file = getenv("TIG_TRACE");
+		trace_file = getenv("CRA_TRACE");
 		if (!trace_file)
 			trace_file = "";
 	}
@@ -345,7 +327,7 @@ io_trace(const char *fmt, ...)
 	int retval;
 
 	if (!trace_out) {
-		const char *trace_file = getenv("TIG_TRACE");
+		const char *trace_file = getenv("CRA_TRACE");
 
 		if (trace_file)
 			trace_out = fopen(trace_file, "a");

@@ -22,7 +22,7 @@ test_setup_work_dir() {
 	git update-ref refs/my-raw-ref2 HEAD
 }
 
-export TIG_LS_REMOTE='sh -c "git show-ref --head --dereference | grep -v refs/.\\*1"'
+export CRA_LS_REMOTE='sh -c "git show-ref --head --dereference | grep -v refs/.\\*1"'
 
 steps '
 	:save-display main.screen

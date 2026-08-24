@@ -1,0 +1,35 @@
+#!/bin/sh
+#
+# Test Arc repository discovery using deterministic command output.
+
+. libtest.sh
+. libarc.sh
+
+mock_arc
+
+steps "
+	:exec !assert-var [%(repo:head)] == [feature/test]
+	:exec !assert-var [%(repo:head-id)] == [1111111111111111111111111111111111111111]
+	:exec !assert-var [%(repo:remote)] == [example]
+	:exec !assert-var [%(repo:upstream)] == [example/trunk]
+	:exec !assert-var [%(repo:cdup)] == []
+	:exec !assert-var [%(repo:prefix)] == []
+	:exec !assert-var [%(repo:git-dir)] == []
+	:exec !assert-var [%(repo:worktree)] == [$HOME/$work_dir]
+	:exec !assert-var [%(repo:is-inside-work-tree)] == [true]
+"
+
+stdin test
+test_tig
+
+assert_vars 9
+
+assert_equals arc-commands strict <<EOF
+root
+rev-parse --show-prefix
+info --json
+config --list
+branch --all --verbose
+EOF
+
+assert_equals stderr < /dev/null

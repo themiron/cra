@@ -312,7 +312,7 @@ view_driver(struct view *view, enum request request)
 		break;
 
 	case REQ_SHOW_VERSION:
-		report("tig-%s", TIG_VERSION);
+		report("cra-%s", TIG_VERSION);
 		return true;
 
 	case REQ_SCREEN_REDRAW:
@@ -363,18 +363,18 @@ view_driver(struct view *view, enum request request)
  */
 
 static const char usage_string[] =
-"tig " TIG_VERSION " \n"
+"cra " TIG_VERSION " \n"
 "\n"
-"Usage: tig        [options] [revs] [--] [paths]\n"
-"   or: tig log    [options] [revs] [--] [paths]\n"
-"   or: tig show   [options] [revs] [--] [paths]\n"
-"   or: tig reflog [options] [revs]\n"
-"   or: tig blame  [options] [rev] [--] path\n"
-"   or: tig grep   [options] [pattern]\n"
-"   or: tig refs   [options]\n"
-"   or: tig stash  [options]\n"
-"   or: tig status\n"
-"   or: tig <      [git command output]\n"
+"Usage: cra        [options] [revs] [--] [paths]\n"
+"   or: cra log    [options] [revs] [--] [paths]\n"
+"   or: cra show   [options] [revs] [--] [paths]\n"
+"   or: cra reflog [options] [revs]\n"
+"   or: cra blame  [options] [rev] [--] path\n"
+"   or: cra grep   [options] [pattern]\n"
+"   or: cra refs   [options]\n"
+"   or: cra stash  [options]\n"
+"   or: cra status\n"
+"   or: cra <      [arc command output]\n"
 "\n"
 "Options:\n"
 "  +<number>       Select line <number> in the first view\n"
@@ -388,36 +388,39 @@ usage(const char *message)
 	die("%s\n\n%s", message, usage_string);
 }
 
-static enum status_code
-read_filter_args(char *name, size_t namelen, char *value, size_t valuelen, void *data)
+static bool
+arc_option_takes_value(const char *arg)
 {
-	const char ***filter_args = data;
+	static const char *options[] = {
+		"-n", "--max-count", "--author", "--grep", "-S", "--search",
+		"--after", "--before", "-U", "--unified", "--format", "--pretty",
+		"--relative", "-L", NULL
+	};
+	int i;
 
-	return argv_append(filter_args, name) ? SUCCESS : ERROR_OUT_OF_MEMORY;
+	for (i = 0; options[i]; i++)
+		if (!strcmp(arg, options[i]))
+			return true;
+	return false;
 }
 
 static bool
-filter_rev_parse(const char ***args, const char *arg1, const char *arg2, const char *argv[])
+arc_argument_is_path(const char *arg)
 {
-	const char *rev_parse_argv[SIZEOF_ARG] = { "git", "rev-parse", arg1, arg2 };
-	const char **all_argv = NULL;
-	struct io io;
+	struct stat stat;
 
-	if (!argv_append_array(&all_argv, rev_parse_argv) ||
-	    !argv_append_array(&all_argv, argv) ||
-	    io_run_load(&io, all_argv, "\n", read_filter_args, args) != SUCCESS)
-		die("Failed to split arguments");
-	argv_free(all_argv);
-	free(all_argv);
-
-	return !io.status;
+	if (!lstat(arg, &stat))
+		return true;
+	return *arg == '/' || !prefixcmp(arg, "./") || !prefixcmp(arg, "../");
 }
 
 static void
 filter_options(const char *argv[], enum request request)
 {
 	const char **flags = NULL;
-	int next, flags_pos;
+	bool paths = false;
+	bool blame_revision = false;
+	int next;
 
 	update_options_from_argv(argv);
 
@@ -426,46 +429,37 @@ filter_options(const char *argv[], enum request request)
 		return;
 	}
 
-	/* Add known revision arguments in opt_rev_args and use
-	 * git-rev-parse to filter out the remaining options.
-	 */
-	for (next = flags_pos = 0; argv[next]; next++) {
+	/* Arc does not provide git's --flags/--no-revs argument splitter.
+	 * Treat non-options before an explicit -- as revisions and everything
+	 * after it as paths.  Blame accepts at most one revision. */
+	for (next = 0; argv[next]; next++) {
 		const char *arg = argv[next];
 
-		if (!strcmp(arg, "--"))
-			while (argv[next])
-				argv[flags_pos++] = argv[next++];
-		else if (argv_parse_rev_flag(arg, NULL))
-			argv_append(&opt_rev_args, arg);
+		if (!strcmp(arg, "--")) {
+			paths = true;
+			continue;
+		}
+		if (paths) {
+			argv_append(&opt_file_args, arg);
+			continue;
+		}
+		if (*arg == '-') {
+			argv_append(&flags, arg);
+			if (arc_option_takes_value(arg) && argv[next + 1])
+				argv_append(&flags, argv[++next]);
+			continue;
+		}
+		if (arc_argument_is_path(arg) ||
+		    (request == REQ_VIEW_BLAME && blame_revision))
+			argv_append(&opt_file_args, arg);
 		else {
-			argv[flags_pos++] = arg;
+			argv_append(&opt_rev_args, arg);
 			string_copy_rev(argv_env.head, arg);
+			blame_revision = request == REQ_VIEW_BLAME;
 		}
 	}
 
-	argv[flags_pos] = NULL;
-
-	if (!filter_rev_parse(&opt_file_args, "--no-revs", "--no-flags", argv) &&
-	    request != REQ_VIEW_BLAME)
-		die("No revisions match the given arguments.");
-	filter_rev_parse(&flags, "--flags", "--no-revs", argv);
-
-	if (flags) {
-		for (next = flags_pos = 0; flags && flags[next]; next++) {
-			const char *flag = flags[next];
-
-			if (argv_parse_rev_flag(flag, NULL))
-				argv_append(&opt_rev_args, flag);
-			else
-				flags[flags_pos++] = flag;
-		}
-
-		flags[flags_pos] = NULL;
-
-		opt_cmdline_args = flags;
-	}
-
-	filter_rev_parse(&opt_rev_args, "--symbolic", "--revs-only", argv);
+	opt_cmdline_args = flags;
 }
 
 static enum request
@@ -537,7 +531,7 @@ parse_options(int argc, const char *argv[], bool pager_mode)
 #if defined HAVE_PCRE2
 				char pcre2_version[64];
 #endif
-				printf("tig version %s\n", TIG_VERSION);
+				printf("cra version %s\n", TIG_VERSION);
 #ifdef NCURSES_VERSION
 				printf("%s version %s.%d\n",
 #if defined(HAVE_NCURSESW_CURSES_H) || defined(HAVE_NCURSESW_H)
@@ -694,11 +688,11 @@ sigsegv_handler(int sig)
 	if (die_callback)
 		die_callback();
 
-	fputs("Tig crashed!\n\n"
-	      "Please report this issue along with all info printed below to\n\n"
-	      "  https://github.com/jonas/tig/issues/new\n\n", stderr);
+	fputs("Cra crashed!\n\n"
+	      "Please report this issue to the Cra project maintainers and include\n"
+	      "all information printed below.\n\n", stderr);
 
-	fputs("Tig version: ", stderr);
+	fputs("Cra version: ", stderr);
 	fputs(TIG_VERSION, stderr);
 	fputs("\n\n", stderr);
 
@@ -784,32 +778,6 @@ hangup_children(void)
 	killpg(getpid(), SIGHUP);
 }
 
-static inline enum status_code
-handle_git_prefix(void)
-{
-	const char *prefix = getenv("GIT_PREFIX");
-	char cwd[4096];
-
-	if (!prefix || !*prefix)
-		return SUCCESS;
-
-	/*
-	 * GIT_PREFIX is set when tig is invoked as a git alias.
-	 * Tig expects to run from the subdirectory so clear the prefix
-	 * and set GIT_WORK_TREE accordingly.
-	 */
-	if (!getcwd(cwd, sizeof(cwd)))
-		return error("Failed to read CWD");
-	if (setenv("GIT_WORK_TREE", cwd, 1))
-		return error("Failed to set GIT_WORK_TREE");
-	if (chdir(prefix))
-		return error("Failed to change directory to %s", prefix);
-	if (setenv("GIT_PREFIX", "", 1))
-		return error("Failed to clear GIT_PREFIX");
-
-	return SUCCESS;
-}
-
 int
 main(int argc, const char *argv[])
 {
@@ -833,7 +801,6 @@ main(int argc, const char *argv[])
 		codeset = nl_langinfo(CODESET);
 	}
 
-	die_if_failed(handle_git_prefix(), "Failed to handle GIT_PREFIX");
 	die_if_failed(load_repo_info(), "Failed to load repo info.");
 	die_if_failed(load_options(), "Failed to load user config.");
 	die_if_failed(load_git_config(), "Failed to load repo config.");
@@ -845,9 +812,9 @@ main(int argc, const char *argv[])
 
 	prompt_init();
 
-	/* Require a git repository unless when running in pager mode. */
-	if (!repo.git_dir[0] && request != REQ_VIEW_PAGER)
-		die("Not a git repository");
+	/* Require an arc repository unless when running in pager mode. */
+	if (!(repo.is_inside_work_tree || *repo.worktree) && request != REQ_VIEW_PAGER)
+		die("Not an arc repository");
 
 	if (codeset && strcmp(codeset, ENCODING_UTF8)) {
 		char translit[SIZEOF_STR];
@@ -867,8 +834,8 @@ main(int argc, const char *argv[])
 	if (pager_mode)
 		request = open_pager_mode(request);
 
-	if (getenv("TIG_SCRIPT")) {
-		const char *script_command[] = { "script", getenv("TIG_SCRIPT"), NULL };
+	if (getenv("CRA_SCRIPT")) {
+		const char *script_command[] = { "script", getenv("CRA_SCRIPT"), NULL };
 
 		run_prompt_command(NULL, script_command);
 	}

@@ -1,0 +1,26 @@
+NAME="cra"
+VERSION=@@VERSION@@
+RELEASE=@@RELEASE@@
+CATEGORY="Devel"
+SUMMARY="Cra: text-mode interface for Arc"
+DESCRIPTION="Cra is an Arc repository browser that can also act as a pager.
+It presents history, commit diffs, trees, blobs, blame, references, and status.
+
+Using it as a pager, it will display input from stdin and colorize it."
+HOMEPAGE="https://github.com/themiron/cra"
+LICENSE="GPL-2.0-or-later"
+SRC_URI="cra-${VERSION}.tar.gz"
+BUILD_REQUIRES="gcc-core make sed libiconv-devel libncurses-devel libreadline-devel libpcre2-devel"
+REQUIRES="libiconv2 libncursesw10 libreadline7 libpcre2-posix3 libpcre2_8_0"
+
+src_compile() {
+	lndirs
+	cd ${B}
+	cygconf
+	cygmake
+}
+
+src_install() {
+	cd ${B}
+	cyginstall install install-doc
+}

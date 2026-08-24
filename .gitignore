@@ -26,6 +26,7 @@ doc/manual.pdf
 doc/manual.toc
 doc/release-docs/
 src/builtin-config.c
+src/cra
 src/tig
 tags
 test/coverage
@@ -35,5 +36,9 @@ tig-*.tar.gz
 tig-*.tar.gz.sha256
 tig.spec
 tig.cygport
+cra-*.tar.gz
+cra-*.tar.gz.sha256
+cra.spec
+cra.cygport
 tools/doc-gen
 tig.dSYM

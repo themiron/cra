@@ -1,0 +1,22 @@
+#!/bin/sh
+#
+# Test exact Arc tag decoration in a commit view.
+
+. libtest.sh
+. libarc.sh
+
+commit=3333333333333333333333333333333333333333
+mock_arc '' v1.0 "$commit"
+
+steps ':save-display diff.screen'
+
+test_tig show "$commit"
+
+grep '^Refs:' diff.screen > refs
+
+assert_equals refs strict <<EOF
+Refs: v1.0
+EOF
+
+assert_contains arc-commands "tag --points-at $commit"
+assert_equals stderr < /dev/null

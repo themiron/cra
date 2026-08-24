@@ -332,10 +332,9 @@ goto_id(struct view *view, const char *expr, bool from_start, bool save_search)
 		report("Jumping to ID is not supported by the %s view", view->name);
 		return;
 	} else {
-		char tmp[SIZEOF_STR];
-		char *rev = (snprintf(tmp, SIZEOF_STR, "%s^{}", expr), argv_format_arg(view->env, tmp));
+		char *rev = argv_format_arg(view->env, expr);
 		const char *rev_parse_argv[] = {
-			"git", "rev-parse", "--revs-only", rev, NULL
+			"arc", "rev-parse", rev, NULL
 		};
 		bool ok = rev && io_run_buf(rev_parse_argv, id, sizeof(id), NULL, true);
 
@@ -553,6 +552,7 @@ view_exec(struct view *view, enum open_flags flags)
 	const char **argv = NULL;
 	int i;
 	bool ok;
+	bool arc_command = !strcmp(view->argv[0], "arc");
 
 	enum io_flags forward_stdin = (flags & OPEN_FORWARD_STDIN) ? IO_RD_FORWARD_STDIN : 0;
 	enum io_flags with_stderr = (flags & OPEN_WITH_STDERR) ? IO_RD_WITH_STDERR : 0;
@@ -560,9 +560,10 @@ view_exec(struct view *view, enum open_flags flags)
 
 	for (i = 0; view->argv[i]; i++) {
 		const char *arg = view->argv[i];
-		if (strcmp(arg, "--stat"))
+
+		if (arc_command || strcmp(arg, "--stat"))
 			argv_append(&argv, arg);
-		if (!strcmp(arg, "--stat") || !strcmp(arg, "--patch-with-stat"))
+		if (!arc_command && (!strcmp(arg, "--stat") || !strcmp(arg, "--patch-with-stat")))
 			argv_append(&argv, stat_arg(view, flags));
 	}
 	ok = io_exec(&view->io, IO_RD, view->dir, NULL, argv, io_flags);
@@ -879,7 +880,8 @@ open_view(struct view *prev, struct view *view, enum open_flags flags)
 		return;
 	}
 
-	if (!view_has_flags(view, VIEW_NO_GIT_DIR) && !repo.git_dir[0]) {
+	if (!view_has_flags(view, VIEW_NO_GIT_DIR) &&
+	    !(repo.is_inside_work_tree || *repo.worktree)) {
 		report("The %s view is disabled in pager mode", view->name);
 		return;
 	}

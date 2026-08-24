@@ -2,7 +2,7 @@
 
 . libtest.sh
 
-export TIGRC_SYSTEM=/dev/null
+export CRARC_SYSTEM=/dev/null
 
 tigrc <<EOF
 bind generic : prompt

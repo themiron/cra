@@ -8,7 +8,7 @@ export COLUMNS=120
 
 # This test uses the trace output so do not show trace for this test.
 trace=
-export TIG_TRACE="$HOME/trace"
+export CRA_TRACE="$HOME/trace"
 
 test_setup_work_dir()
 {
@@ -51,12 +51,12 @@ EXPECTED_SCREEN
 
 run_test_cases
 
-grep 'git rev-parse' < "$TIG_TRACE" > rev-parse.trace
-grep 'git diff-index' < "$TIG_TRACE" > diff-index.trace
-grep 'git diff-files' < "$TIG_TRACE" > diff-files.trace
-grep 'git ls-files' < "$TIG_TRACE" > ls-files.trace
+grep 'git rev-parse' < "$CRA_TRACE" > rev-parse.trace
+grep 'git diff-index' < "$CRA_TRACE" > diff-index.trace
+grep 'git diff-files' < "$CRA_TRACE" > diff-files.trace
+grep 'git ls-files' < "$CRA_TRACE" > ls-files.trace
 
-if grep -q 'update-index' < "$TIG_TRACE"; then
+if grep -q 'update-index' < "$CRA_TRACE"; then
 	die "update-index should not run when status is path-filtered"
 fi
 

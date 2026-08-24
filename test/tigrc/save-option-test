@@ -13,7 +13,7 @@ steps "
 	:save-options check-tigrc
 "
 
-TIGRC_USER="$HOME/saved-tigrc" test_tig status
+CRARC_USER="$HOME/saved-tigrc" test_tig status
 cp stderr stderr.2
 
 cat stderr.* > stderr

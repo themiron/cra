@@ -194,27 +194,51 @@ static bool
 stage_apply_chunk(struct view *view, struct line *chunk, struct line *single,
 		  bool revert, update_t update_type)
 {
-	const char *apply_argv[SIZEOF_ARG] = {
-		"git", "apply", "--whitespace=nowarn", NULL
+	char index_arg[SIZEOF_STR];
+	char tempfile[SIZEOF_STR];
+	bool unstage = stage_line_type == LINE_STAT_STAGED;
+	const char *show_argv[] = { "arc", "show", index_arg, NULL };
+	const char *patch_argv[] = {
+		"patch", "--silent", "--batch", "--fuzz=0",
+		unstage ? "--reverse" : "--forward",
+		tempfile, NULL
+	};
+	const char *add_argv[] = {
+		"arc", "add", stage_status.new.name, "-F", tempfile, NULL
 	};
 	struct line *diff_hdr;
 	struct io io;
-	int argc = 3;
+	struct buffer buf;
+	bool ok;
+	int fd;
+
+	if (revert ||
+	    (stage_line_type != LINE_STAT_STAGED &&
+	     stage_line_type != LINE_STAT_UNSTAGED) ||
+	    !stage_status.new.name[0]) {
+		report("Arc patch mode only supports staging tracked changes");
+		return false;
+	}
 
 	diff_hdr = find_prev_line_by_type(view, chunk, LINE_DIFF_HEADER);
-	if (!diff_hdr)
+	if (!diff_hdr || !string_format(index_arg, ":%s", stage_status.new.name) ||
+	    !string_format(tempfile, "%s/cra-index.XXXXXX", get_temp_dir()))
 		return false;
 
-	if (opt_diff_noprefix)
-		apply_argv[argc++] = "-p0";
-	if (!revert)
-		apply_argv[argc++] = "--cached";
-	if (revert || stage_line_type == LINE_STAT_STAGED)
-		apply_argv[argc++] = "-R";
-	apply_argv[argc++] = "-";
-	apply_argv[argc++] = NULL;
-	if (!io_run(&io, IO_WR, repo.exec_dir, NULL, apply_argv))
+	fd = mkstemp(tempfile);
+	if (fd == -1)
 		return false;
+	if (!io_exec(&io, IO_AP, repo.exec_dir, NULL, show_argv, fd)) {
+		close(fd);
+		unlink(tempfile);
+		return false;
+	}
+	ok = io_done(&io);
+
+	if (!ok || !io_run(&io, IO_WR, repo.exec_dir, NULL, patch_argv)) {
+		unlink(tempfile);
+		return false;
+	}
 
 	switch (update_type)
 	{
@@ -233,7 +257,18 @@ stage_apply_chunk(struct view *view, struct line *chunk, struct line *single,
 		break;
 	}
 
-	return io_done(&io) && chunk;
+	ok = io_done(&io) && chunk;
+
+	if (ok && io_run(&io, IO_RD, repo.exec_dir, NULL, add_argv)) {
+		while (io_get(&io, &buf, '\n', true))
+			;
+		ok = !io_error(&io) && io_done(&io);
+	} else {
+		ok = false;
+	}
+
+	unlink(tempfile);
+	return ok;
 }
 
 static bool
@@ -456,10 +491,10 @@ find_deleted_line_in_head(struct view *view, struct line *line) {
 		file_in_index_pathspec[sizeof(":") + SIZEOF_STR];
 	const char *file_in_head = NULL;
 	const char *ls_tree_argv[] = {
-		"git", "ls-tree", "-z", "HEAD", view->env->file, NULL
+		"arc", "ls-tree", "-z", "HEAD", view->env->file, NULL
 	};
 	const char *diff_argv[] = {
-		"git", "diff", file_in_head_pathspec, file_in_index_pathspec,
+		"arc", "diff", file_in_head_pathspec, file_in_index_pathspec,
 		"--no-color", NULL
 	};
 
@@ -472,8 +507,7 @@ find_deleted_line_in_head(struct view *view, struct line *line) {
 		file_in_head = view->env->file;
 	} else { // The file might might be renamed in the index. Find its old name.
 		const char *diff_index_argv[] = {
-			"git", "diff-index", "--cached", "-C",
-			"--diff-filter=ACR", "-z", "HEAD", NULL
+			"arc", "diff", "--cached", "--name-status", NULL
 		};
 		if (!io_run(&io, IO_RD, repo.exec_dir, NULL, diff_index_argv) || io.status)
 			return false;
@@ -725,9 +759,9 @@ stage_open(struct view *view, enum open_flags flags)
 	/* Diffs for unmerged entries are empty when passing the new
 	 * path, so leave out the new path. */
 	const char *files_unmerged_argv[] = {
-		"git", "diff-files", encoding_arg, "--textconv", "--patch-with-stat",
-			DIFF_ARGS, diff_context_arg(), diff_prefix_arg(),
-			ignore_space_arg(), "--", stage_status.old.name, NULL
+		"arc", "diff", "--git", "--no-color",
+			diff_context_arg(), ignore_space_arg(), "--",
+			stage_status.old.name, NULL
 	};
 	static const char *file_argv[] = { repo.exec_dir, stage_status.new.name, NULL };
 	const char **argv = NULL;

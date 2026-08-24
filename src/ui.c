@@ -46,7 +46,7 @@ file_finder_read(struct file_finder *finder, const char *commit)
 {
 	const char *tree = string_rev_is_null(commit) ? "HEAD" : commit;
 	const char *ls_tree_files_argv[] = {
-		"git", "ls-tree", "-z", "-r", "--name-only", "--full-name",
+		"arc", "ls-tree", "-r", "--name-only", "--full-name",
 			tree, NULL
 	};
 	struct buffer buf;
@@ -57,7 +57,7 @@ file_finder_read(struct file_finder *finder, const char *commit)
 	if (!io_run(&io, IO_RD, repo.exec_dir, NULL, ls_tree_files_argv))
 		return false;
 
-	for (files = 0; io_get(&io, &buf, 0, true); files++) {
+	for (files = 0; io_get(&io, &buf, '\n', true); files++) {
 		/* Alloc two to ensure NULL terminated array. */
 		if (!realloc_file_array(&finder->file, files, 2)) {
 			ok = false;

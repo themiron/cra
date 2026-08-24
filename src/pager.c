@@ -44,7 +44,7 @@ add_pager_refs(struct view *view, const char *commit_id)
 
 	list = get_ref_list(commit_id);
 	if (!list) {
-		if (view_has_flags(view, VIEW_ADD_DESCRIBE_REF) && refs_contain_tag())
+		if (view_has_flags(view, VIEW_ADD_DESCRIBE_REF) && !view->unrefreshable)
 			add_line_text(view, sep, LINE_PP_REFS);
 		return;
 	}
@@ -125,10 +125,13 @@ pager_common_read(struct view *view, const char *data, enum line_type type, stru
 		*line_ptr = line;
 
 	if (line->type == LINE_COMMIT && view_has_flags(view, VIEW_ADD_PAGER_REFS)) {
+		char commit_id[SIZEOF_REV];
+
 		data += STRING_SIZE("commit ");
 		while (*data && !isalnum((unsigned char)*data))
 			data++;
-		add_pager_refs(view, data);
+		string_copy_rev(commit_id, data);
+		add_pager_refs(view, commit_id);
 	}
 
 	return true;

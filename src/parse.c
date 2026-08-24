@@ -15,6 +15,50 @@
 #include "tig/parse.h"
 #include "tig/map.h"
 
+bool
+parse_json_string(const char *line, const char *name, char *value,
+		  size_t value_size, bool flatten_whitespace)
+{
+	const char *key = strstr(line, name);
+	size_t pos = 0;
+
+	if (!key)
+		return false;
+	key += strlen(name);
+	while (isspace((unsigned char)*key))
+		key++;
+	if (*key++ != ':')
+		return false;
+	while (isspace((unsigned char)*key))
+		key++;
+	if (*key++ != '"')
+		return false;
+
+	while (*key && *key != '"' && pos + 1 < value_size) {
+		char c = *key++;
+
+		if (c == '\\') {
+			c = *key++;
+			switch (c) {
+			case 'b': c = '\b'; break;
+			case 'f': c = '\f'; break;
+			case 'n': c = flatten_whitespace ? ' ' : '\n'; break;
+			case 'r': c = flatten_whitespace ? ' ' : '\r'; break;
+			case 't': c = flatten_whitespace ? ' ' : '\t'; break;
+			case '"':
+			case '\\':
+			case '/':
+				break;
+			default:
+				return false;
+			}
+		}
+		value[pos++] = c;
+	}
+	value[pos] = 0;
+	return *key == '"';
+}
+
 size_t
 parse_size(const char *text)
 {

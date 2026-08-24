@@ -14,23 +14,23 @@ kernel_name := $(shell sh -c 'uname -s 2>/dev/null || echo unknown' | sed 's/\(C
 -include config.make
 
 # Optional defaults.
-# TIG_ variables are set by contrib/config.make-$(kernel_name).
-TIG_NCURSES ?= -lcurses
-LDFLAGS ?= $(TIG_LDFLAGS)
-CPPFLAGS ?= $(TIG_CPPFLAGS)
-LDLIBS ?= $(TIG_NCURSES) $(TIG_LDLIBS)
-CFLAGS ?= -Wall -O2 $(TIG_CFLAGS)
+# CRA_ variables are set by contrib/config.make-$(kernel_name).
+CRA_NCURSES ?= -lcurses
+LDFLAGS ?= $(CRA_LDFLAGS)
+CPPFLAGS ?= $(CRA_CPPFLAGS)
+LDLIBS ?= $(CRA_NCURSES) $(CRA_LDLIBS)
+CFLAGS ?= -Wall -O2 $(CRA_CFLAGS)
 
 prefix ?= $(HOME)
 bindir ?= $(prefix)/bin
 datarootdir ?= $(prefix)/share
 sysconfdir ?= $(prefix)/etc
-docdir ?= $(datarootdir)/doc/tig
+docdir ?= $(datarootdir)/doc/cra
 mandir ?= $(datarootdir)/man
 # DESTDIR=
 
 ifneq (,$(wildcard .git))
-GITDESC	= $(subst tig-,,$(shell git describe 2>/dev/null))
+GITDESC	= $(subst cra-,,$(subst tig-,,$(shell git describe 2>/dev/null)))
 COMMIT := $(if $(GITDESC),$(GITDESC),$(VERSION)-g$(shell git describe --always))
 WTDIRTY	= $(if $(shell git diff-index HEAD 2>/dev/null),-dirty)
 VERSION	= $(COMMIT)$(WTDIRTY)
@@ -46,26 +46,26 @@ RPM_VERSION = $(word 1,$(RPM_VERLIST))
 RPM_RELEASE = $(word 2,$(RPM_VERLIST))$(if $(WTDIRTY),.dirty)
 
 DFLAGS	= -g -DDEBUG -Werror -O0
-EXE	= src/tig
+EXE	= src/cra
 TOOLS	= test/tools/test-graph tools/doc-gen
-TXTDOC	= doc/tig.1.adoc doc/tigrc.5.adoc doc/manual.adoc NEWS.adoc README.adoc INSTALL.adoc test/API.adoc
-MANDOC	= doc/tig.1 doc/tigrc.5 doc/tigmanual.7
-HTMLDOC = doc/tig.1.html doc/tigrc.5.html doc/manual.html README.html INSTALL.html NEWS.html
+TXTDOC	= doc/cra.1.adoc doc/crarc.5.adoc doc/manual.adoc NEWS.adoc README.adoc INSTALL.adoc test/API.adoc
+MANDOC	= doc/cra.1 doc/crarc.5 doc/cramanual.7
+HTMLDOC = doc/cra.1.html doc/crarc.5.html doc/manual.html README.html INSTALL.html NEWS.html
 ALLDOC	= $(MANDOC) $(HTMLDOC) doc/manual.html-chunked
 PDFDOC	= doc/manual.pdf
 
 # Never include the release number in the tarname for tagged
 # versions.
 ifneq ($(if $(DIST_VERSION),$(words $(RPM_VERLIST))),2)
-TARNAME	= tig-$(RPM_VERSION)-$(RPM_RELEASE)
+TARNAME	= cra-$(RPM_VERSION)-$(RPM_RELEASE)
 else
-TARNAME	= tig-$(RPM_VERSION)
+TARNAME	= cra-$(RPM_VERSION)
 endif
 
 override CPPFLAGS += '-DTIG_VERSION="$(VERSION)"'
 override CPPFLAGS += '-DSYSCONFDIR="$(sysconfdir)"'
-ifdef TIG_USER_CONFIG
-override CPPFLAGS += '-DTIG_USER_CONFIG="$(TIG_USER_CONFIG)"'
+ifdef CRA_USER_CONFIG
+override CPPFLAGS += '-DTIG_USER_CONFIG="$(CRA_USER_CONFIG)"'
 endif
 
 ASCIIDOC ?= asciidoc
@@ -137,7 +137,7 @@ export sysconfdir
 
 install: all
 	$(QUIET_INSTALL)tools/install.sh bin $(EXE) "$(DESTDIR)$(bindir)"
-	$(QUIET_INSTALL)tools/install.sh data tigrc "$(DESTDIR)$(sysconfdir)"
+	$(QUIET_INSTALL)tools/install.sh data crarc "$(DESTDIR)$(sysconfdir)"
 
 install-doc-man: doc-man
 	$(Q)$(foreach doc, $(filter %.1, $(MANDOC)), \
@@ -168,7 +168,7 @@ install-release-doc: install-release-doc-man install-release-doc-html
 
 uninstall:
 	$(QUIET_UNINSTALL)tools/uninstall.sh "$(DESTDIR)$(bindir)/$(EXE:src/%=%)"
-	$(QUIET_UNINSTALL)tools/uninstall.sh "$(DESTDIR)$(sysconfdir)/tigrc"
+	$(QUIET_UNINSTALL)tools/uninstall.sh "$(DESTDIR)$(sysconfdir)/crarc"
 	$(Q)$(foreach doc, $(filter %.1, $(MANDOC:doc/%=%)), \
 		$(QUIET_UNINSTALL_EACH)tools/uninstall.sh "$(DESTDIR)$(mandir)/man1/$(doc)";)
 	$(Q)$(foreach doc, $(filter %.5, $(MANDOC:doc/%=%)), \
@@ -179,7 +179,7 @@ uninstall:
 		$(QUIET_UNINSTALL_EACH)tools/uninstall.sh "$(DESTDIR)$(docdir)/$(doc)";)
 
 clean: clean-test clean-coverage
-	$(Q)$(RM) -r $(TARNAME) tig-*.tar.gz tig-*.tar.gz.sha256 .deps _book node_modules
+	$(Q)$(RM) -r $(TARNAME) cra-*.tar.gz cra-*.tar.gz.sha256 .deps _book node_modules
 	$(Q)$(RM) -r $(compdb_dir) compile_commands.json
 	$(Q)$(RM) $(EXE) $(TOOLS) $(OBJS) core doc/*.xml src/builtin-config.c
 	$(Q)$(RM) $(OBJS:%.o=%.gcda) $(OBJS:%.o=%.gcno)
@@ -190,7 +190,7 @@ distclean: clean
 	$(RM) config.h config.log config.make config.status config.h.in~
 
 veryclean: distclean
-	$(RM) tig.spec tig.cygport $(ALLDOC) aclocal.m4 configure config.h.in
+	$(RM) cra.spec cra.cygport $(ALLDOC) aclocal.m4 configure config.h.in
 
 spell-check:
 	for file in $(TXTDOC) src/tig.c; do \
@@ -213,15 +213,15 @@ update-headers:
 	done
 
 update-docs: tools/doc-gen
-	doc="doc/tigrc.5.adoc"; \
+	doc="doc/crarc.5.adoc"; \
 	$(SED) -n '0,/ifndef::DOC_GEN_ACTIONS/p' < "$$doc" > "$$doc.gen"; \
 	./tools/doc-gen actions >> "$$doc.gen"; \
 	$(SED) -n '/endif::DOC_GEN_ACTIONS/,$$p' < "$$doc" >> "$$doc.gen" ; \
 	mv "$$doc.gen" "$$doc"
 
-dist: configure config.h.in aclocal.m4 tig.spec tig.cygport
+dist: configure config.h.in aclocal.m4 cra.spec cra.cygport
 	$(Q)mkdir -p $(TARNAME) && \
-	cp Makefile tig.spec tig.cygport configure config.h.in aclocal.m4 $(TARNAME) && \
+	cp Makefile cra.spec cra.cygport configure config.h.in aclocal.m4 $(TARNAME) && \
 	$(SED) -i "s/VERSION\s\+=\s\+[0-9]\+\([.][0-9]\+\)\+/VERSION	= $(VERSION)/" $(TARNAME)/Makefile
 	git archive --format=tar --prefix=$(TARNAME)/ HEAD | \
 	$(TAR) --delete $(TARNAME)/Makefile > $(TARNAME).tar && \
@@ -259,16 +259,30 @@ all-address-sanitizer: all
 all-address-sanitizer: CFLAGS += $(ADDRESS_SANITIZER_CFLAGS)
 
 test-address-sanitizer: clean all-address-sanitizer test
-test-address-sanitizer: export TIG_ADDRESS_SANITIZER_ENABLED=yes
+test-address-sanitizer: export CRA_ADDRESS_SANITIZER_ENABLED=yes
 
 TESTS  = $(sort $(shell find test -type f -name '*-test'))
+CRA_TESTS = $(filter test/graph/%,$(TESTS)) \
+	test/arc/repo-info-test test/arc/status-test test/arc/tag-test \
+	test/diff/diff-stat-test test/diff/diff-stdin-test
+ARC_TESTS = $(filter test/arc/live/%,$(TESTS))
 TESTS_TODO = $(sort $(shell find test -type f -name '*-test' -exec grep -l '\(test_todo\|-todo=\)' {} \+))
 
 clean-test:
 	$(Q)$(RM) -r test/tmp
 
-test: clean-test $(TESTS)
+test: clean-test $(CRA_TESTS)
 	$(QUIET_SUMMARY)test/tools/show-results.sh
+
+check-arc-test:
+	@test -n "$(CRA_TEST_REPO)" || { echo 'Set CRA_TEST_REPO to an Arc working directory' >&2; exit 1; }
+	@test -d "$(CRA_TEST_REPO)" || { echo 'Arc test directory does not exist: $(CRA_TEST_REPO)' >&2; exit 1; }
+	@command -v arc >/dev/null || { echo 'The live Arc tests require arc in PATH' >&2; exit 1; }
+
+test-arc: clean-test check-arc-test $(ARC_TESTS)
+	$(QUIET_SUMMARY)test/tools/show-results.sh
+
+$(ARC_TESTS): check-arc-test
 
 ifneq (,$(strip $(V:@=)))
 export MAKE_TEST_OPTS = no-indent
@@ -298,10 +312,10 @@ site:
 	gitbook build
 	find _book -type f | grep -E -v '(gitbook|json|html)' | xargs rm
 
-.PHONY: all all-coverage all-debug clean clean-coverage clean-test doc \
+.PHONY: all all-coverage all-debug check-arc-test clean clean-coverage clean-test doc \
 	doc-man doc-html dist distclean install install-doc \
 	install-doc-man install-doc-html install-release-doc-html \
-	install-release-doc-man rpm spell-check strip test \
+	install-release-doc-man rpm spell-check strip test test-arc \
 	test-coverage update-docs update-headers veryclean $(TESTS)
 
 ifdef NO_MKSTEMPS
@@ -371,7 +385,8 @@ TIG_OBJS = \
 	$(GRAPH_OBJS) \
 	$(COMPAT_OBJS)
 
-src/tig: $(TIG_OBJS)
+src/cra: $(TIG_OBJS)
+	$(QUIET_LINK)$(CC) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) $^ $(LDLIBS) -o $@
 
 TEST_GRAPH_OBJS = test/tools/test-graph.o src/string.o src/util.o src/io.o $(GRAPH_OBJS) $(COMPAT_OBJS)
 test/tools/test-graph: $(TEST_GRAPH_OBJS)
@@ -392,7 +407,7 @@ DEPS_CFLAGS ?= -MMD -MP -MF .deps/$*.d
 
 -include $(OBJS:%.o=.deps/%.d)
 
-src/builtin-config.c: tigrc tools/make-builtin-config.sh
+src/builtin-config.c: crarc tools/make-builtin-config.sh
 	$(QUIET_GEN)tools/make-builtin-config.sh $< > $@
 
 %: contrib/%.in
@@ -418,7 +433,7 @@ INSTALL.html: INSTALL.adoc doc/asciidoc.conf
 NEWS.html: NEWS.adoc doc/asciidoc.conf
 	$(QUIET_ASCIIDOC)$(ASCIIDOC) $(ASCIIDOC_FLAGS) -b xhtml11 -d article $<
 
-doc/tigmanual.7: doc/manual.adoc
+doc/cramanual.7: doc/manual.adoc
 
 test/API.adoc: test/tools/libtest.sh
 	@printf '%s\n%s\n' 'Testing API' '-----------' > $@

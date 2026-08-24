@@ -1,6 +1,13 @@
 Release notes
 =============
 
+cra-2.6.1
+---------
+
+ - Introduce Cra, an Arc-backed fork of Tig.
+ - Rename public artifacts to Cra while retaining internal Tig names for
+   upstream compatibility.
+
 tig-2.6.1
 ---------
 

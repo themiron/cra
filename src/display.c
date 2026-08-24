@@ -145,7 +145,7 @@ shell_escape(char *dst, size_t dstlen, const char *src)
 	"*** This is probably because it doesn't support the line\n" \
 	"*** number argument added automatically. The line number\n" \
 	"*** has been disabled for now. You can permanently disable\n" \
-	"*** it by adding the following line to ~/.tigrc\n" \
+	"*** it by adding the following line to ~/.crarc\n" \
 	"***	set editor-line-number = no\n"
 
 void
@@ -156,9 +156,9 @@ open_editor(const char *file, unsigned int lineno)
 	const char *editor_argv[] = { "sh", "-c", editor_cmd, NULL };
 	const char *editor;
 
-	editor = getenv("TIG_EDITOR");
+	editor = getenv("CRA_EDITOR");
 	if (!editor)
-		editor = getenv("GIT_EDITOR");
+		editor = getenv("ARC_EDITOR");
 	if (!editor && *opt_editor)
 		editor = opt_editor;
 	if (!editor)
@@ -660,7 +660,7 @@ init_tty(void)
 void
 init_display(void)
 {
-	bool no_display = !!getenv("TIG_NO_DISPLAY");
+	bool no_display = !!getenv("CRA_NO_DISPLAY");
 	int x, y;
 	int code;
 
@@ -703,7 +703,7 @@ init_display(void)
 #ifdef NCURSES_VERSION
 	/* Disable extended keys so that esc-codes will be received
 	 * instead of extended key values (> KEY_MAX).
-	 * Then these keys can be mapped in .tigrc etc. */
+	 * Then these keys can be mapped in .crarc etc. */
 	for (code = KEY_MAX; code < MAX_KEYS; code++) {
 		keyok(code, false);
 	}

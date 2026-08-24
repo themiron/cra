@@ -19,6 +19,8 @@ assert_equals(filename, [whitespace, note, ...]) < expected::
 
 assert_not_exists(filename)::
 
+assert_contains(filename, text, [note, ...])::
+
 assert_vars(count)::
 
 test_todo([note, ...])::

@@ -1,4 +1,4 @@
-AC_INIT([tig],[0],[jonas.fonseca@gmail.com],[tig])
+AC_INIT([cra],[0],[themiron@mail.ru],[cra])
 
 AC_LANG([C])
 AC_CONFIG_HEADERS([config.h])
@@ -28,7 +28,7 @@ case "$ax_cv_ncurses" in "no")
 esac
 case "$ax_cv_ncursesw" in "no")
 	AC_MSG_WARN([The found ncurses library does not support wide-char.])
-	AC_MSG_WARN([This means that tig will not correctly render UTF-8.])
+	AC_MSG_WARN([This means that cra will not correctly render UTF-8.])
 esac
 AC_SUBST(CURSES_LIBS)
 

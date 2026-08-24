@@ -239,7 +239,7 @@ help_open(struct view *view, enum open_flags flags)
 
 	if (!add_help_line(view, &help, NULL, LINE_HEADER))
 		return ERROR_OUT_OF_MEMORY;
-	help->data.text = "Quick reference for tig keybindings:";
+	help->data.text = "Quick reference for cra keybindings:";
 
 	if (!add_help_line(view, &help, &collapse_expand_keymap, LINE_SECTION))
 		return ERROR_OUT_OF_MEMORY;

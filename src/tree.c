@@ -77,7 +77,9 @@ struct tree_state {
 	struct time author_time;
 	const struct ident *committer;
 	struct time commit_time;
+	size_t size_lineno;
 	bool read_date;
+	bool read_size;
 };
 
 static const char *
@@ -138,6 +140,86 @@ tree_entry(struct view *view, enum line_type type, const char *path,
 	entry->size = size;
 
 	return line;
+}
+
+static bool tree_load_size(struct view *view, struct tree_state *state,
+			   size_t lineno);
+
+static void
+tree_load_worktree_sizes(struct view *view)
+{
+	size_t i;
+
+	for (i = 1; i < view->lines; i++) {
+		struct line *line = &view->line[i];
+		struct tree_entry *entry = line->data;
+		char path[SIZEOF_STR];
+		struct stat stat;
+
+		if (line->type != LINE_FILE ||
+		    !string_format(path, "%s/%s%s", repo.worktree,
+				   view->env->directory, entry->name) ||
+		    lstat(path, &stat) == -1)
+			continue;
+		entry->size = stat.st_size;
+		line->dirty = 1;
+		view_column_info_update(view, line);
+	}
+}
+
+static bool
+tree_read_size(struct view *view, struct buffer *buf, struct tree_state *state)
+{
+	char *text = buf ? buf->data : NULL;
+	char *value;
+
+	if (!text) {
+		state->read_size = false;
+		return tree_load_size(view, state, state->size_lineno + 1);
+	}
+
+	value = strstr(text, "\"size\":");
+	if (value && state->size_lineno < view->lines) {
+		struct line *line = &view->line[state->size_lineno];
+		struct tree_entry *entry = line->data;
+		char *end;
+		unsigned long size;
+
+		value += STRING_SIZE("\"size\":");
+		size = strtoul(value, &end, 10);
+		if (end > value) {
+			entry->size = size;
+			line->dirty = 1;
+			view_column_info_update(view, line);
+		}
+	}
+	return true;
+}
+
+static bool
+tree_load_size(struct view *view, struct tree_state *state, size_t lineno)
+{
+	for (; lineno < view->lines; lineno++) {
+		struct line *line = &view->line[lineno];
+		struct tree_entry *entry = line->data;
+		char path[SIZEOF_STR];
+		const char *entry_argv[] = {
+			"arc", "dump", "entry", "--json", "-r", view->vid,
+			path, NULL
+		};
+
+		if (line->type != LINE_FILE)
+			continue;
+		if (!string_format(path, "%s%s", view->env->directory,
+				  entry->name))
+			continue;
+		if (begin_update(view, repo.exec_dir, entry_argv, OPEN_EXTRA) == SUCCESS) {
+			state->size_lineno = lineno;
+			state->read_size = true;
+			return false;
+		}
+	}
+	return true;
 }
 
 static bool
@@ -320,6 +402,41 @@ tree_read(struct view *view, struct buffer *buf, bool force_stop)
 }
 
 static bool
+tree_read_arc(struct view *view, struct buffer *buf, bool force_stop)
+{
+	struct tree_state *state = view->private;
+	char line[SIZEOF_STR];
+	char *tab;
+	struct buffer tree_buf;
+
+	if (state->read_size)
+		return tree_read_size(view, buf, state);
+	if (state->read_date)
+		return tree_read(view, buf, force_stop);
+	if (!buf) {
+		if (!view->lines) {
+			tree_entry(view, LINE_HEADER, view->env->directory, NULL, NULL, 0);
+			tree_entry(view, LINE_DIRECTORY, "..", "040000", view->ref, 0);
+			report("Tree is empty");
+			return true;
+		}
+		if (!strcmp(view->vid, repo.head_id)) {
+			tree_load_worktree_sizes(view);
+			return true;
+		}
+		return tree_load_size(view, state, 1);
+	}
+
+	tab = strchr(buf->data, '\t');
+	if (!tab || !string_format(line, "%.*s 0%s",
+				   (int)(tab - buf->data), buf->data, tab))
+		return false;
+	tree_buf.data = line;
+	tree_buf.size = strlen(line);
+	return tree_read(view, &tree_buf, force_stop);
+}
+
+static bool
 tree_draw(struct view *view, struct line *line, unsigned int lineno)
 {
 	struct tree_entry *entry = line->data;
@@ -335,14 +452,14 @@ tree_draw(struct view *view, struct line *line, unsigned int lineno)
 void
 open_blob_editor(const char *id, const char *name, unsigned int lineno)
 {
-	const char *blob_argv[] = { "git", "cat-file", "blob", id, NULL };
+	const char *blob_argv[] = { "arc", "dump", "object", id, NULL };
 	char file[SIZEOF_STR];
 	int fd;
 
 	if (!name)
 		name = "unknown";
 
-	if (!string_format(file, "%s/tigblob.XXXXXX.%s", get_temp_dir(), name)) {
+	if (!string_format(file, "%s/crablob.XXXXXX.%s", get_temp_dir(), name)) {
 		report("Temporary file name is too long");
 		return;
 	}
@@ -465,7 +582,7 @@ static enum status_code
 tree_open(struct view *view, enum open_flags flags)
 {
 	const char *tree_argv[] = {
-		"git", "ls-tree", recurse_tree_arg(), "-l", "%(commit)", "--", "%(directory)", NULL
+		"arc", "ls-tree", recurse_tree_arg(), "%(commit)", "%(directory)", NULL
 	};
 
 	if (string_rev_is_null(view->env->commit))
@@ -487,8 +604,6 @@ tree_open(struct view *view, enum open_flags flags)
 			}
 		}
 
-	} else if (strcmp(view->vid, view->ops->id)) {
-		view->env->directory[0] = 0;
 	}
 
 	return begin_update(view, repo.exec_dir, tree_argv, flags);
@@ -500,7 +615,7 @@ static struct view_ops tree_ops = {
 	VIEW_SEND_CHILD_ENTER | VIEW_SORTABLE | VIEW_TREE_LIKE | VIEW_REFRESH,
 	sizeof(struct tree_state),
 	tree_open,
-	tree_read,
+	tree_read_arc,
 	tree_draw,
 	tree_request,
 	view_column_grep,

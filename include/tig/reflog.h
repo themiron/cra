@@ -18,6 +18,10 @@
 
 extern struct view reflog_view;
 
+bool reflog_read_entry(struct view *view, const char *id, const char *ref,
+		       const char *author, const char *date,
+		       const char *description);
+
 static inline void
 open_reflog_view(struct view *prev, enum open_flags flags)
 {

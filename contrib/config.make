@@ -24,7 +24,7 @@ CPPFLAGS = -DHAVE_NCURSESW_CURSES_H
 # Uncomment to enable work-around for missing wordexp().
 #NO_WORDEXP=y
 
-# Uncomment to not include built-in tigrc inside the binary.
-#NO_BUILTIN_TIGRC=y
+# Uncomment to not include built-in crarc inside the binary.
+#NO_BUILTIN_CRARC=y
 
 # vim: ft=make:

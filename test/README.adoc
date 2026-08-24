@@ -1,9 +1,25 @@
 Test Overview
 =============
 
-All tests can be run with `make test`. This will run all scripts that
-end with `-test` in the `test` folder and summarize the test results
-using the script `test/tools/show-results.sh`.
+Run the deterministic Cra regression suite with `make test`. It covers the
+graph renderer, repository discovery using recorded Arc output, and pager-based
+diff parsing. These tests require neither Git nor a real Arc client.
+
+Live Arc smoke tests are separate:
+
+--------------------------------------------------------------------------------
+$ make test-arc CRA_TEST_REPO=/path/to/arc/working-tree
+--------------------------------------------------------------------------------
+
+They only read from the selected working tree. The real Arc client runs with
+the invoking user's `HOME`, while Cra keeps the test harness's isolated
+configuration. A live test fails clearly when Arc or `CRA_TEST_REPO` is
+missing; it is never silently reported as covered.
+
+The remaining upstream tests use standalone Git histories under `test/tmp`.
+They are retained as individually addressable porting references, but are not
+part of the Cra regression suite until converted to deterministic Arc command
+fixtures or read-only live tests.
 
 To run individual tests, use `make <path-to-test>` e.g. `make
 test/tigrc/parse-test`. Alternatively, tests can be run directly via the
@@ -34,7 +50,7 @@ no-indent::
 
 debugger[=<program]::
 
-	Invoke tig via a debugger, for example `debugger=lldb`. When no
+	Invoke Cra via a debugger, for example `debugger=lldb`. When no
 	program is specified it is auto-detected. Remember to recompile
 	using `make clean all-debug` to expose all symbols.
 

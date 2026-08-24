@@ -1,47 +1,52 @@
-Tig: text-mode interface for Git
+Cra: text-mode interface for Arc
 ================================
 :docext: adoc
 
-image:https://github.com/jonas/tig/workflows/Linux/badge.svg[Linux CI,link=https://github.com/jonas/tig/actions?query=workflow%3ALinux]
-image:https://github.com/jonas/tig/workflows/macOS/badge.svg[macOS CI,link=https://github.com/jonas/tig/actions?query=workflow%3AmacOS]
-image:https://ci.appveyor.com/api/projects/status/jxt1uf52o7r0a8r7/branch/master?svg=true[AppVeyor Build,link=https://ci.appveyor.com/project/fonseca/tig]
+image:https://github.com/themiron/cra/actions/workflows/linux.yml/badge.svg[Linux CI,link=https://github.com/themiron/cra/actions/workflows/linux.yml]
+image:https://github.com/themiron/cra/actions/workflows/macos.yml/badge.svg[macOS CI,link=https://github.com/themiron/cra/actions/workflows/macos.yml]
 
-What is Tig?
+What is Cra?
 ------------
-Tig is an ncurses-based text-mode interface for git. It functions mainly
-as a Git repository browser, but can also assist in staging changes for
-commit at chunk level and act as a pager for output from various Git
+Cra is an ncurses-based text-mode interface for arc. It functions mainly
+as a Arc repository browser, but can also assist in staging changes for
+commit at chunk level and act as a pager for output from various Arc
 commands.
+
+Origin and License
+------------------
+Cra is a hard fork of Tig, created by Jonas Fonseca. The original project is
+available at https://github.com/jonas/tig[] and its homepage is
+https://jonas.github.io/tig/[https://jonas.github.io/tig/]. All files
+distributed as part of Cra are covered by this fork-wide modification notice.
+Cra modifications began on 2026-08-25; Git history records individual changes
+and dates. Cra is distributed under the GNU General Public License version 2 or
+later; see link:COPYING[].
 
 Resources
 ---------
 
- - Homepage:	https://github.com/jonas/tig[]
- - Manual:	https://www.mankier.com/7/tigmanual[]
- - Tarballs:	https://github.com/jonas/tig/releases[]
- - Q&A:		https://stackoverflow.com/questions/tagged/tig[]
+ - Homepage:	https://github.com/themiron/cra[]
+ - Manual:	link:doc/cramanual.7.adoc[]
+ - Tarballs:	https://github.com/themiron/cra/releases[]
 
 Bugs and Feature Requests
 -------------------------
 Bugs and feature requests can be reported using the
-https://github.com/jonas/tig/issues[issue tracker] or by mail to the
-https://lore.kernel.org/git/[Git mailing list]. Ensure that the word
-"tig" is in the subject. For other Tig related questions please use
-Stack Overflow: https://stackoverflow.com/questions/tagged/tig[].
+https://github.com/themiron/cra/issues[issue tracker].
 
 If you are sending a bug report, please include the following information:
 
-- What Tig and ncurses versions are you using?
-  (`tig -v`)
+- What Cra and ncurses versions are you using?
+  (`cra -v`)
 - What system do you have?
   (`uname -a`, `lsb_release -a`)
-- What Git version are you using?
-  (`git -v`)
+- What Arc version are you using?
+  (`arc -v`)
 
 Installation and News
 ---------------------
 
-Information on how to build and install Tig are found in
+Information on how to build and install Cra are found in
 link:INSTALL.{docext}[the installation instructions].
 
 News about releases and latest features and bug fixes are found in

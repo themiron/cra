@@ -9,19 +9,19 @@ jobs:
     strategy:
       matrix:
         compiler: [clang, gcc]
-        tig_build: [autoconf, "config.make"]
+        cra_build: [autoconf, "config.make"]
         include:
           - name: Address Sanitizer
             compiler: clang
-            tig_build: "address-sanitizer"
+            cra_build: "address-sanitizer"
 
           - name: Valgrind
             compiler: gcc
-            tig_build: valgrind
+            cra_build: valgrind
 
     steps:
       - uses: actions/checkout@v4
-      - name: Test Tig
+      - name: Test Cra
         shell: 'script -q -e -c "sh {0}"' # Workaround to get a TTY, see https://github.com/gfx/example-github-actions-with-tty
         run: |
           set -ex
@@ -29,4 +29,4 @@ jobs:
           sudo apt update
           sudo DEBIAN_FRONTEND=noninteractive apt -yq install --no-install-recommends \
             asciidoc valgrind xmlto
-          CC=${{ matrix.compiler }} TIG_BUILD=${{ matrix.tig_build }} tools/travis.sh
+          CC=${{ matrix.compiler }} CRA_BUILD=${{ matrix.cra_build }} tools/travis.sh

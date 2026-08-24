@@ -1,0 +1,20 @@
+#!/bin/sh
+#
+# Smoke-test the status branch against a mounted Arc working tree.
+
+. libtest.sh
+. libarc.sh
+
+use_arc_repo
+
+head="$(in_work_dir arc info --json |
+	sed -n 's/.*"branch":"\([^"]*\)".*/\1/p')"
+[ -n "$head" ] || die 'Arc did not provide a branch name'
+
+steps ':save-display status.screen'
+
+test_tig status
+
+grep '^On branch ' status.screen > branch
+assert_contains branch "On branch $head"
+assert_equals stderr < /dev/null

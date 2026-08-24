@@ -300,6 +300,41 @@ read_ref(char *id, size_t idlen, char *name, size_t namelen, void *data)
 	return add_to_refs(id, idlen, name, namelen, data);
 }
 
+static enum status_code
+read_arc_ref(char *line, size_t linelen, char *value, size_t valuelen, void *data)
+{
+	struct ref_opt *opt = data;
+	char fullname[SIZEOF_STR];
+	char *name = line;
+	char *id;
+	char *end;
+	const char *prefix;
+	size_t remote_len = strlen(repo.remote);
+
+	while (*name == ' ' || *name == '*')
+		name++;
+	end = name;
+	while (*end && !isspace((unsigned char)*end))
+		end++;
+	if (!*end)
+		return SUCCESS;
+	*end++ = 0;
+	while (*end && isspace((unsigned char)*end))
+		end++;
+	id = end;
+	if (strlen(id) < SIZEOF_REV - 1)
+		return SUCCESS;
+	id[SIZEOF_REV - 1] = 0;
+	if (!iscommit(id))
+		return SUCCESS;
+
+	prefix = remote_len && !strncmp(name, repo.remote, remote_len) &&
+		name[remote_len] == '/' ? "refs/remotes/" : "refs/heads/";
+	if (!string_format(fullname, "%s%s", prefix, name))
+		return ERROR_OUT_OF_MEMORY;
+	return add_to_refs(id, SIZEOF_REV - 1, fullname, strlen(fullname), opt);
+}
+
 static bool
 invalidate_refs(void *data, void *ref_)
 {
@@ -329,23 +364,24 @@ reload_refs(bool force)
 {
 	struct io io;
 	const char *ls_remote_argv[SIZEOF_ARG] = {
-		"git", "show-ref", "--head", "--dereference", NULL
+		"arc", "branch", "--all", "--verbose", NULL
 	};
 	char ls_remote_cmd[SIZEOF_STR];
 	struct ref_opt opt = { repo.upstream, repo.head, WATCH_NONE };
 	struct repo_info old_repo = repo;
 	enum status_code code;
-	const char *env = getenv("TIG_LS_REMOTE");
+	const char *env = getenv("CRA_LS_REMOTE");
+	bool custom_refs = env && *env;
 
-	if (env && *env) {
+	if (custom_refs) {
 		int argc = 0;
 
 		string_ncopy(ls_remote_cmd, env, strlen(env));
 		if (!argv_from_string_no_quotes(ls_remote_argv, &argc, ls_remote_cmd))
-			return error("Failed to parse TIG_LS_REMOTE: %s", env);
+			return error("Failed to parse CRA_LS_REMOTE: %s", env);
 	}
 
-	if (!*repo.git_dir)
+	if (!(repo.is_inside_work_tree || *repo.worktree))
 		return SUCCESS;
 
 	if (force || !*repo.head)
@@ -359,7 +395,8 @@ reload_refs(bool force)
 	string_map_clear(&refs_by_id);
 	string_map_foreach(&refs_by_name, invalidate_refs, NULL);
 
-	code = io_run_load(&io, ls_remote_argv, " \t", read_ref, &opt);
+	code = io_run_load(&io, ls_remote_argv, custom_refs ? " \t" : "\n",
+			   custom_refs ? read_ref : read_arc_ref, &opt);
 	if (code != SUCCESS)
 		return code;
 

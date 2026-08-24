@@ -34,12 +34,13 @@ open_blob_view(struct view *prev, enum open_flags flags)
 
 	if (!view->env->file[0] && opt_file_args && !opt_file_args[1]) {
 		const char *ls_tree_argv[] = {
-			"git", "ls-tree", "-d", "-z",  view->env->commit, opt_file_args[0], NULL
+			"arc", "ls-tree", "-d", view->env->commit, opt_file_args[0], NULL
 		};
 		char buf[SIZEOF_STR] = "";
 
-		/* Check that opt_file_args[0] is not a directory */
-		if (!io_run_buf(ls_tree_argv, buf, sizeof(buf), NULL, false))
+		/* Arc returns a matching blob even with -d, so inspect its type. */
+		if (io_run_buf(ls_tree_argv, buf, sizeof(buf), NULL, false) &&
+		    strstr(buf, " blob "))
 			string_concat_path(view->env->file, repo.prefix, opt_file_args[0]);
 	}
 
@@ -65,7 +66,7 @@ blob_open(struct view *view, enum open_flags flags)
 {
 	struct blob_state *state = view->private;
 	static const char *blob_argv[] = {
-		"git", "cat-file", "blob", "%(blob)", NULL
+		"arc", "show", "%(commit):%(file)", NULL
 	};
 	const char **argv = (flags & (OPEN_PREPARED | OPEN_REFRESH)) ? view->argv : blob_argv;
 
@@ -74,7 +75,7 @@ blob_open(struct view *view, enum open_flags flags)
 		state->commit[0] = 0;
 	} else {
 		const char *status_argv[] = {
-			"git", "status", "-s", view->env->file, NULL
+			"arc", "status", "-s", view->env->file, NULL
 		};
 		char buf[SIZEOF_STR] = "";
 
@@ -89,17 +90,8 @@ blob_open(struct view *view, enum open_flags flags)
 			state->commit[0] = 0;
 		}
 
-		if (!view->env->blob[0] && view->env->file[0]) {
-			const char *commit = state->commit[0] ? state->commit : "HEAD";
-			char blob_spec[SIZEOF_STR];
-			const char *rev_parse_argv[] = {
-				"git", "rev-parse", blob_spec, NULL
-			};
-
-			if (!string_format(blob_spec, "%s:%s", commit, view->env->file) ||
-			    !io_run_buf(rev_parse_argv, view->env->blob, sizeof(view->env->blob), NULL, false))
-				return error("Failed to resolve blob from file name");
-		}
+		if (!view->env->blob[0] && view->env->file[0])
+			string_copy(view->env->blob, view->env->file);
 	}
 
 	if (!state->file && !view->env->blob[0])

@@ -1,10 +1,10 @@
 # Bindings from before version 2.0
 #
 # To use these bindings copy the file to your HOME directory and include
-# it from your ~/.tigrc file:
+# it from your ~/.crarc file:
 #
-#	$ cp contrib/bindings-v1.x.tigrc ~/.tigrc.compat
-#	$ echo "source ~/.tigrc.compat" >> ~/.tigrc
+#	$ cp contrib/bindings-v1.x.crarc ~/.crarc.compat
+#	$ echo "source ~/.crarc.compat" >> ~/.crarc
 
 bind generic	B	view-blame
 bind generic	G	view-grep

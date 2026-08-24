@@ -2,19 +2,19 @@ Installation instructions
 =========================
 :docext: adoc
 
-Download a tarball from https://github.com/jonas/tig/releases[] or clone the Tig
-repository https://github.com/jonas/tig[https://github.com/jonas/tig.git].
+Download a tarball from https://github.com/themiron/cra/releases[] or clone the Cra
+repository https://github.com/themiron/cra[https://github.com/themiron/cra.git].
 
 The latest version is:
-https://github.com/jonas/tig/releases/download/tig-2.6.1/tig-2.6.1.tar.gz[tig-2.6.1]
-https://github.com/jonas/tig/releases/download/tig-2.6.1/tig-2.6.1.tar.gz.sha256[(sha256)]
+https://github.com/themiron/cra/releases/download/cra-2.6.1/cra-2.6.1.tar.gz[cra-2.6.1]
+https://github.com/themiron/cra/releases/download/cra-2.6.1/cra-2.6.1.tar.gz.sha256[(sha256)]
 
-The quick and simple way to install Tig is:
+The quick and simple way to install Cra is:
 
 	$ make
 	$ make install
 
-By default, `tig` is installed in `$HOME/bin`. To install `tig` elsewhere set
+By default, `cra` is installed in `$HOME/bin`. To install `cra` elsewhere set
 `prefix` to the desired path:
 
 	$ make prefix=/usr/local
@@ -32,7 +32,7 @@ and can be installed using:
 
 	$ make install-doc
 
-When installing directly from the Tig repository, `make install-doc` will assume
+When installing directly from the Cra repository, `make install-doc` will assume
 that the documentation tool chain is available and build the documentation
 locally. In case you do not wish to install the required tools, documentation
 can be installed from the 'release' branch using:
@@ -46,14 +46,14 @@ Installation using `configure`
 
 If you prefer an autotools-based installation process, you can use the
 `configure` script to detect dependencies and enable features. If you downloaded
-the Tig sources from https://github.com/jonas/tig/releases/[a release tarball]
-there's already a `configure` script. However, if you are building from the Tig
+the Cra sources from https://github.com/themiron/cra/releases/[a release tarball]
+there's already a `configure` script. However, if you are building from the Cra
 repository, you need to ensure that `autoconf` is installed on your system and
 generate the `configure` script yourself.
 
 To install using `configure`, run the following commands:
 
-	$ make configure # Only run if you are building from the Git repository
+	$ make configure # Only run if you are building from the Arc repository
 	$ ./configure
 	$ make
 	$ make install
@@ -70,48 +70,48 @@ build without `configure`):
 Installation using Homebrew
 ---------------------------
 
-You can use link:https://brew.sh[Homebrew] to install Tig on macOS and Linux:
+You can use link:https://brew.sh[Homebrew] to install Cra on macOS and Linux:
 
-        $ brew install tig
+        $ brew install cra
 
 Installation using Nix
 ----------------------
 
-You can use link:https://nixos.org/nix/[Nix] to install Tig on NixOS, or any Linux/macOS distribution with Nix installed:
+You can use link:https://nixos.org/nix/[Nix] to install Cra on NixOS, or any Linux/macOS distribution with Nix installed:
 
-        $ nix-env -i tig
+        $ nix-env -i cra
 	
 Installation on Linux
 ---------------------
 
-Depending on your distribution, you may be able to use one of the following commands to install Tig on Linux:
+Depending on your distribution, you may be able to use one of the following commands to install Cra on Linux:
 
-        $ apt-get install tig (Debian, Ubuntu)
-        $ dnf install tig (Fedora)
-        $ pacman -S tig (Arch Linux)
-        $ apk add tig (Alpine)
+        $ apt-get install cra (Debian, Ubuntu)
+        $ dnf install cra (Fedora)
+        $ pacman -S cra (Arch Linux)
+        $ apk add cra (Alpine)
 
 Installation on FreeBSD
 -----------------------
 
-You can use link:https://man.freebsd.org/pkg/8[pkg] to install Tig on FreeBSD:
+You can use link:https://man.freebsd.org/pkg/8[pkg] to install Cra on FreeBSD:
 
-        $ pkg install tig
+        $ pkg install cra
 
 Installation on Windows
 -----------------------
 
 Easiest way is to install link:https://gitforwindows.org/[Git-for-Windows],
-it comes bundled with `tig`.
+it comes bundled with `cra`.
 
 Alternatively, you can also use it by installing link:https://www.cygwin.com/[Cygwin].
 
-If you want to install from the sources, you must then install the packages `git`,
+If you want to install from the sources, you must then install the packages
 `gcc-core`, `make`, `sed`, `libiconv-devel` and `libncurses-devel`, and optionally
 `libreadline-devel` and `libpcre2-devel`. Use `cygport` or extract the tarball and
 install by using `configure` as explained above.
 
-If you want to install from the Git repository, then you will also need the
+If you want to install from the Arc repository, then you will also need the
 `automake` and `autoconf` packages. Then run `make configure` and install by
 using `configure` as explained above.
 
@@ -135,12 +135,12 @@ can be one of the following flags:
    `mkstemps()`.
  - `NO_WORDEXP`: Define this variable to enable work-around for missing
    `wordexp()`.
- - `NO_BUILTIN_TIGRC`: Reduce the size of the binary by not including a
-   built-in tigrc. The built-in tigrc is used as a fallback when no
-   `tigrc` is found in the system configuration directory (e.g. `/etc`).
- - `TIG_USER_CONFIG`: Allow customizing the `tigrc` path (default `~/.tigrc`).
+ - `NO_BUILTIN_CRARC`: Reduce the size of the binary by not including a
+   built-in crarc. The built-in crarc is used as a fallback when no
+   `crarc` is found in the system configuration directory (e.g. `/etc`).
+ - `CRA_USER_CONFIG`: Allow customizing the `crarc` path (default `~/.crarc`).
 
-The following example `config.make` manually configures Tig to use the ncurses
+The following example `config.make` manually configures Cra to use the ncurses
 library with wide character support and include the proper ncurses header file
 (see tig.h for more information):
 
@@ -158,7 +158,6 @@ The following tools and packages are needed:
 [cols="2<,8<",options="header"]
 |=============================================================================
 |Tool				|Description
-|git-core			|Tig is just a frontend for Git.
 |ncurses or ncursesw		|Be sure to have the development files
 				 installed. Usually they are available in a
 				 separate package ending with `-dev`.
@@ -167,7 +166,7 @@ The following tools and packages are needed:
 				 is required to properly handle UTF-8 encoded
 				 strings.
 
-				 Note for packagers: For Tig's `configure`
+				 Note for packagers: For Cra's `configure`
 				 script to work as expected you should avoid
 				 configuring and building ncurses using
 				 `--with-shared`.

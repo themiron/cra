@@ -27,6 +27,8 @@ test="$(basename -- "$0")"
 source_dir="$(cd "$(dirname -- "$0")" >/dev/null && pwd -P)"
 base_dir="$(printf '%s\n' "$source_dir" | sed -n 's#\(.*/test\)\([/].*\)*#\1#p')"
 prefix_dir="$(printf '%s\n' "$source_dir" | sed -n 's#\(.*/test/\)\([/].*\)*#\2#p')"
+original_home="$HOME"
+original_path="$PATH"
 output_dir="$base_dir/tmp/$prefix_dir/$test"
 tmp_dir="$base_dir/tmp"
 output_dir="$tmp_dir/$prefix_dir/$test"
@@ -57,10 +59,10 @@ unset GIT_COMMITTER_NAME GIT_COMMITTER_EMAIL GIT_COMMITTER_DATE
 unset GIT_EDITOR GIT_SEQUENCE_EDITOR GIT_PAGER GIT_EXTERNAL_DIFF
 unset GIT_NOTES_REF GIT_NOTES_DISPLAY_REF
 
-# Tig env
-export TIG_TRACE=
-export TIGRC_SYSTEM=
-unset TIGRC_USER
+# Cra env
+export CRA_TRACE=
+export CRARC_SYSTEM=
+unset CRARC_USER
 
 # Ncurses env
 export ESCDELAY=200
@@ -79,7 +81,7 @@ export TEST_NAME=
 [ -e "$output_dir" ] && rm -rf -- "$output_dir"
 mkdir -p -- "$output_dir/$work_dir"
 
-if [ ! -d "$tmp_dir/.git" ]; then
+if command -v git >/dev/null 2>&1 && [ ! -d "$tmp_dir/.git" ]; then
 	# Create a dummy repository to avoid reading .git/config
 	# settings from the tig repository.
 	git init -q -- "$tmp_dir"
@@ -167,7 +169,7 @@ tig_script() {
 	name="$1"; shift
 	prefix="${name:+$name.}"
 
-	export TIG_SCRIPT="$HOME/${prefix}steps"
+	export CRA_SCRIPT="$HOME/${prefix}steps"
 	export TEST_NAME="$name"
 
 	# Ensure that the steps finish by quitting
@@ -176,7 +178,7 @@ tig_script() {
 		| sed "s|:save-display[ 	]\{1,\}\([^ 	]\{1,\}\)|:save-display $HOME/\1|" \
 		| sed "s|:save-options[ 	]\{1,\}\([^ 	]\{1,\}\)|:save-options $HOME/\1|" \
 		| sed "s|:save-view[ 	]\{1,\}\([^ 	]\{1,\}\)|:save-view $HOME/\1|" \
-		> "$TIG_SCRIPT"
+		> "$CRA_SCRIPT"
 }
 
 ### Testing API AsciiDoc
@@ -200,7 +202,7 @@ stdin() {
 #| tigrc([content, ...]) [< content]::
 #|
 tigrc() {
-	file "$HOME/.tigrc" "$@"
+	file "$HOME/.crarc" "$@"
 }
 
 ### Testing API AsciiDoc
@@ -328,7 +330,11 @@ assert_equals()
 	file "expected/$file"
 
 	if [ -e "$file" ]; then
-		( IFS=' 	'; git diff --no-index $diff_color_arg $whitespace_arg -- "expected/$file" "$file" > "$file.diff" || true )
+		if command -v git >/dev/null 2>&1; then
+			( IFS=' 	'; git diff --no-index $diff_color_arg $whitespace_arg -- "expected/$file" "$file" > "$file.diff" || true )
+		else
+			( IFS=' 	'; diff -u $whitespace_arg -- "expected/$file" "$file" > "$file.diff" || true )
+		fi
 		if [ -s "$file.diff" ]; then
 			printf '[FAIL] %s != expected/%s\n' "$file" "$file" >> .test-result
 			if [ -n "$*" ]; then
@@ -356,6 +362,28 @@ assert_not_exists()
 		printf '[FAIL] %s should not exist\n' "$file" >> .test-result
 	else
 		printf '  [OK] %s does not exist\n' "$file" >> .test-result
+	fi
+}
+
+### Testing API AsciiDoc
+#|
+#| assert_contains(filename, text, [note, ...])::
+#|
+assert_contains()
+{
+	file="$1"
+	text="$2"
+	shift 2
+
+	if [ ! -e "$file" ]; then
+		printf '[FAIL] %s not found\n' "$file" >> .test-result
+	elif grep -F -q -- "$text" "$file"; then
+		printf '  [OK] %s contains %s\n' "$file" "$text" >> .test-result
+	else
+		printf '[FAIL] %s does not contain %s\n' "$file" "$text" >> .test-result
+		if [ -n "$*" ]; then
+			printf '[NOTE] %s\n' "$*" >> .test-result
+		fi
 	fi
 }
 
@@ -415,8 +443,8 @@ show_test_results()
 		sed "s/^/$indent[skipped] /" < .test-skipped
 		return
 	fi
-	if [ -n "$trace" ] && [ -n "$TIG_TRACE" ] && [ -e "$TIG_TRACE" ]; then
-		sed "s/^/$indent[trace] /" < "$TIG_TRACE"
+	if [ -n "$trace" ] && [ -n "$CRA_TRACE" ] && [ -e "$CRA_TRACE" ]; then
+		sed "s/^/$indent[trace] /" < "$CRA_TRACE"
 	fi
 	if [ -n "$valgrind" ] && [ -s "$valgrind" ]; then
 		grep -v '^-\+[0-9]\+-\+ \+run:' < "${valgrind}" || true | sed "s/^/$indent[valgrind] /"
@@ -512,7 +540,7 @@ require_git_version()
 
 has_readline()
 {
-	if tig --version | grep readline >/dev/null 2>&1; then
+	if cra --version | grep readline >/dev/null 2>&1; then
 		return 0
 	else
 		return 1
@@ -534,7 +562,7 @@ test_require()
 				"The test requires git-worktree, available in git version 2.5 or newer"
 			;;
 		address-sanitizer)
-			if [ "${TIG_ADDRESS_SANITIZER_ENABLED:-no}" != yes ]; then
+			if [ "${CRA_ADDRESS_SANITIZER_ENABLED:-no}" != yes ]; then
 				test_skip "The test requires clang and is only run via \`make test-address-sanitizer\`"
 			fi
 			;;
@@ -550,7 +578,7 @@ test_require()
 			;;
 		readline)
 			if ! has_readline; then
-				test_skip "The test requires a tig compiled with readline"
+				test_skip "The test requires a cra compiled with readline"
 			fi
 			;;
 
@@ -668,9 +696,9 @@ test_tig()
 	prefix="${name:+$name.}"
 
 	test_setup
-	export TIG_NO_DISPLAY=
+	export CRA_NO_DISPLAY=
 	if [ -n "$trace" ]; then
-		export TIG_TRACE="$HOME/${prefix}tig-trace"
+		export CRA_TRACE="$HOME/${prefix}tig-trace"
 	fi
 	touch -- "${prefix}stdin" "${prefix}stderr"
 	(
@@ -686,7 +714,7 @@ test_tig()
 			if [ "$#" -gt 0 ]; then
 				printf '*** - This test expects the following arguments: %s\n' "$*"
 			fi
-			"$debugger" tig "$@"
+			"$debugger" cra "$@"
 		else
 			set +e
 			if [ "$expected_status_code" = 0 ] && [ -n "$valgrind" ]; then
@@ -700,7 +728,7 @@ test_tig()
 			else
 				exec 4<&0
 			fi
-			"$runner" tig "$@" <&4 > "$HOME/${prefix}stdout" 2> "$HOME/${prefix}stderr.orig" &
+			"$runner" cra "$@" <&4 > "$HOME/${prefix}stdout" 2> "$HOME/${prefix}stderr.orig" &
 			tig_pid="$!"
 			signal=14
 			install_pid_timeout "$tig_pid" "$signal"
@@ -720,7 +748,7 @@ test_tig()
 		rm -f -- "${prefix}stderr.orig"
 	fi
 	if [ -n "$trace" ]; then
-		export TIG_TRACE="$HOME/.tig-trace"
+		export CRA_TRACE="$HOME/.tig-trace"
 		if [ -n "$name" ]; then
 			sed "s#^#[$name] #" < "$HOME/${prefix}tig-trace" >> "$HOME/.tig-trace"
 		else

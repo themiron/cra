@@ -89,7 +89,6 @@ status_get_diff(struct status *file, const char *buf, size_t bufsize)
 static bool
 status_run(struct view *view, const char *argv[], char status, enum line_type type)
 {
-	struct status *unmerged = NULL;
 	struct buffer buf;
 	struct io io;
 	const char **status_argv = NULL;
@@ -104,56 +103,46 @@ status_run(struct view *view, const char *argv[], char status, enum line_type ty
 
 	add_line_nodata(view, type);
 
-	while (io_get(&io, &buf, 0, true)) {
+	while (io_get(&io, &buf, '\n', true)) {
 		struct line *line;
 		struct status parsed = {0};
 		struct status *file = &parsed;
+		char index_status;
+		char worktree_status;
+		const char *name;
 
-		/* Parse diff info part. */
-		if (status) {
-			file->status = status;
-			if (status == 'A')
-				string_copy(file->old.rev, NULL_ID);
-
-		} else {
-			if (!status_get_diff(&parsed, buf.data, buf.size))
-				goto error_out;
-
-			if (!io_get(&io, &buf, 0, true))
-				break;
-		}
-
-		/* Grab the old name for rename/copy. */
-		if (!*file->old.name &&
-		    (file->status == 'R' || file->status == 'C')) {
-			string_ncopy(file->old.name, buf.data, buf.size);
-
-			if (!io_get(&io, &buf, 0, true))
-				break;
-		}
-
-		/* git-ls-files just delivers a NUL separated list of
-		 * file names similar to the second half of the
-		 * git-diff-* output. */
-		string_ncopy(file->new.name, buf.data, buf.size);
-		if (!*file->old.name)
-			string_copy(file->old.name, file->new.name);
-
-		/* Collapse all modified entries that follow an associated
-		 * unmerged entry. */
-		if (unmerged && !strcmp(unmerged->new.name, file->new.name)) {
-			unmerged->status = 'U';
-			unmerged = NULL;
+		if (buf.size < 4 || buf.data[2] != ' ')
 			continue;
+		index_status = buf.data[0];
+		worktree_status = buf.data[1];
+		name = buf.data + 3;
+
+		if (type == LINE_STAT_STAGED) {
+			if (index_status == ' ' || index_status == '?')
+				continue;
+			file->status = index_status;
+		} else if (type == LINE_STAT_UNSTAGED) {
+			if (worktree_status == ' ' || worktree_status == '?')
+				continue;
+			file->status = worktree_status;
+		} else {
+			if (index_status != '?' || worktree_status != '?')
+				continue;
+			file->status = '?';
 		}
+		if (index_status == 'U' || worktree_status == 'U')
+			file->status = 'U';
+
+		string_ncopy(file->new.name, name, strlen(name));
+		string_copy(file->old.name, file->new.name);
+		if (!*file->new.name)
+			continue;
 
 		line = add_line_alloc(view, &file, type, 0, false);
 		if (!line)
 			goto error_out;
 		*file = parsed;
 		view_column_info_update(view, line);
-		if (file->status == 'U')
-			unmerged = file;
 	}
 
 	if (io_error(&io)) {
@@ -187,15 +176,15 @@ error_out:
 	return true;
 }
 
-static const char *status_diff_index_argv[] = { GIT_DIFF_STAGED_FILES("-z") };
-static const char *status_diff_files_argv[] = { GIT_DIFF_UNSTAGED_FILES("-z") };
-
-static const char *status_list_other_argv[] = {
-	"git", "ls-files", "-z", "--others", "--exclude-standard", NULL, NULL, "--", "%(fileargs)", NULL
+static const char *status_diff_index_argv[] = {
+	ARC_PROGRAM, "status", "--short", "-u", "all", "%(fileargs)", NULL
+};
+static const char *status_diff_files_argv[] = {
+	ARC_PROGRAM, "status", "--short", "-u", "all", "%(fileargs)", NULL
 };
 
-static const char *status_list_no_head_argv[] = {
-	"git", "ls-files", "-z", "--cached", "--exclude-standard", "--", "%(fileargs)", NULL
+static const char *status_list_other_argv[] = {
+	ARC_PROGRAM, "status", "--short", "-u", "all", "%(fileargs)", NULL
 };
 
 /* Restore the previous line number to stay in the context or select a
@@ -237,7 +226,7 @@ status_branch_tracking_info(char *buf, size_t buf_len, const char *head,
 	}
 
 	const char *tracking_info_argv[] = {
-		"git", "rev-list", "--left-right", buf, NULL
+		"arc", "info", "--ahead-behind", NULL
 	};
 
 	struct io io;
@@ -309,7 +298,7 @@ status_update_onbranch(void)
 	struct stat stat;
 	int i;
 
-	if (is_initial_commit()) {
+	if (!*repo.head_id) {
 		string_copy(status_onbranch, "Initial commit");
 		return;
 	}
@@ -319,8 +308,10 @@ status_update_onbranch(void)
 		const char *head = repo.head;
 		const char *tracking_info = "";
 
-		if (!string_format(buf, "%s/%s", repo.git_dir, paths[i][0]) ||
-		    lstat(buf, &stat) < 0)
+		if (strcmp(paths[i][0], "HEAD") &&
+		    (!*repo.git_dir ||
+		     !string_format(buf, "%s/%s", repo.git_dir, paths[i][0]) ||
+		     lstat(buf, &stat) < 0))
 			continue;
 
 		if (paths[i][1]) {
@@ -367,23 +358,15 @@ status_read_untracked(struct view *view)
 		return add_line_nodata(view, LINE_STAT_UNTRACKED)
 		    && add_line_nodata(view, LINE_STAT_NONE);
 
-	status_list_other_argv[ARRAY_SIZE(status_list_other_argv) - 5] =
-		opt_status_show_untracked_dirs ? "" : "--directory";
-	status_list_other_argv[ARRAY_SIZE(status_list_other_argv) - 4] =
-		opt_status_show_untracked_dirs ? "" : "--no-empty-directory";
-
 	return status_run(view, status_list_other_argv, '?', LINE_STAT_UNTRACKED);
 }
 
-/* First parse staged info using git-diff-index(1), then parse unstaged
- * info using git-diff-files(1), and finally untracked files using
- * git-ls-files(1). */
+/* Build the three status sections from arc's two-column short format. */
 static enum status_code
 status_open(struct view *view, enum open_flags flags)
 {
-	const char **staged_argv = is_initial_commit() ?
-		status_list_no_head_argv : status_diff_index_argv;
-	char staged_status = staged_argv == status_list_no_head_argv ? 'A' : 0;
+	const char **staged_argv = status_diff_index_argv;
+	char staged_status = 0;
 
 	if (!(repo.is_inside_work_tree || *repo.worktree))
 		return error("The status view requires a working tree");
@@ -533,84 +516,34 @@ status_exists(struct view *view, struct status *status, enum line_type type)
 }
 
 
-static bool
-status_update_prepare(struct io *io, enum line_type type)
-{
-	const char *staged_argv[] = {
-		"git", "update-index", "-z", "--index-info", NULL
-	};
-	const char *others_argv[] = {
-		"git", "update-index", "-z", "--add", "--remove", "--stdin", NULL
-	};
-
-	switch (type) {
-	case LINE_STAT_STAGED:
-		return io_run(io, IO_WR, repo.exec_dir, NULL, staged_argv);
-
-	case LINE_STAT_UNSTAGED:
-	case LINE_STAT_UNTRACKED:
-		return io_run(io, IO_WR, repo.exec_dir, NULL, others_argv);
-
-	default:
-		die("line type %d not handled in switch", type);
-		return false;
-	}
-}
-
-static bool
-status_update_write(struct io *io, struct status *status, enum line_type type)
-{
-	switch (type) {
-	case LINE_STAT_STAGED:
-		return io_printf(io, "%06o %s\t%s%c", status->old.mode,
-				 status->old.rev, status->old.name, 0);
-
-	case LINE_STAT_UNSTAGED:
-	case LINE_STAT_UNTRACKED:
-		return io_printf(io, "%s%c", status->new.name, 0);
-
-	default:
-		die("line type %d not handled in switch", type);
-		return false;
-	}
-}
-
 bool
 status_update_file(struct status *status, enum line_type type)
 {
 	const char *name = status->new.name;
-	struct io io;
-	bool result;
+	const char *add_argv[] = { ARC_PROGRAM, "add", "--", name, NULL };
+	const char *reset_argv[] = { ARC_PROGRAM, "reset", "--", name, NULL };
 
-	if (type == LINE_STAT_UNTRACKED && !suffixcmp(name, strlen(name), "/")) {
-		const char *add_argv[] = { "git", "add", "--", name, NULL };
-
-		return io_run_bg(add_argv, repo.exec_dir);
-	}
-
-	if (!status_update_prepare(&io, type))
-		return false;
-
-	result = status_update_write(&io, status, type);
-	return io_done(&io) && result;
+	return io_run_fg(type == LINE_STAT_STAGED ? reset_argv : add_argv,
+			 repo.exec_dir, -1);
 }
 
 bool
 status_update_files(struct view *view, struct line *line)
 {
 	char buf[sizeof(view->ref)];
-	struct io io;
+	const char **argv = NULL;
 	bool result = true;
 	struct line *pos;
 	int files = 0;
 	int file, done;
 	int cursor_y = -1, cursor_x = -1;
 
-	if (!status_update_prepare(&io, line->type))
-		return false;
-
 	for (pos = line; view_has_line(view, pos) && pos->data; pos++)
 		files++;
+	if (!argv_append(&argv, ARC_PROGRAM) ||
+	    !argv_append(&argv, line->type == LINE_STAT_STAGED ? "reset" : "add") ||
+	    !argv_append(&argv, "--"))
+		result = false;
 
 	string_copy(buf, view->ref);
 	get_cursor_pos(cursor_y, cursor_x);
@@ -625,11 +558,15 @@ status_update_files(struct view *view, struct line *line)
 			set_cursor_pos(cursor_y, cursor_x);
 			doupdate();
 		}
-		result = status_update_write(&io, line->data, line->type);
+		result = argv_append(&argv, ((struct status *)line->data)->new.name);
 	}
 	string_copy(view->ref, buf);
+	if (result)
+		result = io_run_fg(argv, repo.exec_dir, -1);
+	argv_free(argv);
+	free(argv);
 
-	return io_done(&io) && result;
+	return result;
 }
 
 static bool
@@ -676,29 +613,9 @@ status_revert(struct status *status, enum line_type type, bool has_none)
 		}
 
 	} else if (prompt_yesno("Are you sure you want to revert changes?")) {
-		char mode[10] = "100644";
-		const char *reset_argv[] = {
-			"git", "update-index", "--cacheinfo", mode,
-				status->old.rev, status->old.name, NULL
-		};
 		const char *checkout_argv[] = {
-			"git", "checkout", "--", status->old.name, NULL
+			ARC_PROGRAM, "checkout", "--", status->old.name, NULL
 		};
-
-		if (status->status == 'U') {
-			string_format(mode, "%5o", status->old.mode);
-
-			if (status->old.mode == 0 && status->new.mode == 0) {
-				reset_argv[2] = "--force-remove";
-				reset_argv[3] = status->old.name;
-				reset_argv[4] = NULL;
-			}
-
-			if (!io_run_fg(reset_argv, repo.exec_dir, -1))
-				return false;
-			if (status->old.mode == 0 && status->new.mode == 0)
-				return true;
-		}
 
 		return io_run_fg(checkout_argv, repo.exec_dir, -1);
 	}
@@ -709,7 +626,7 @@ status_revert(struct status *status, enum line_type type, bool has_none)
 static void
 open_mergetool(const char *file)
 {
-	const char *mergetool_argv[] = { "git", "mergetool", file, NULL };
+	const char *mergetool_argv[] = { ARC_PROGRAM, "mergetool", file, NULL };
 
 	open_external_viewer(mergetool_argv, repo.exec_dir, false, true, false, true, true, "");
 }

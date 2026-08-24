@@ -167,13 +167,7 @@ recurse_tree_arg()
 const char *
 log_custom_pretty_arg(void)
 {
-	return opt_show_notes
-		? opt_mailmap
-			? "--pretty=format:commit %m %H %P%x00%aN <%aE> %ad%x00%cN <%cE> %cd%x00%s%x00%N%x03"
-			: "--pretty=format:commit %m %H %P%x00%an <%ae> %ad%x00%cn <%ce> %cd%x00%s%x00%N%x03"
-		: opt_mailmap
-			? "--pretty=format:commit %m %H %P%x00%aN <%aE> %ad%x00%cN <%cE> %cd%x00%s"
-			: "--pretty=format:commit %m %H %P%x00%an <%ae> %ad%x00%cn <%ce> %cd%x00%s";
+	return "--format=commit {commit}\t{parents}\t{author}\t{timestamp}\t{title}";
 }
 
 #define ENUM_ARG(enum_name, arg_string) ENUM_MAP_ENTRY(arg_string, enum_name)
@@ -192,12 +186,13 @@ ignore_space_arg()
 }
 
 static const struct enum_map_entry commit_order_arg_map[] = {
-	ENUM_ARG(COMMIT_ORDER_AUTO,		""),
+	/* Arc needs --full-topo to include side-branch commits and refs. */
+	ENUM_ARG(COMMIT_ORDER_AUTO,		"--full-topo"),
 	ENUM_ARG(COMMIT_ORDER_DEFAULT,		""),
-	ENUM_ARG(COMMIT_ORDER_TOPO,		"--topo-order"),
-	ENUM_ARG(COMMIT_ORDER_DATE,		"--date-order"),
-	ENUM_ARG(COMMIT_ORDER_AUTHOR_DATE,	"--author-date-order"),
-	ENUM_ARG(COMMIT_ORDER_REVERSE,		"--reverse"),
+	ENUM_ARG(COMMIT_ORDER_TOPO,		"--full-topo"),
+	ENUM_ARG(COMMIT_ORDER_DATE,		""),
+	ENUM_ARG(COMMIT_ORDER_AUTHOR_DATE,	""),
+	ENUM_ARG(COMMIT_ORDER_REVERSE,		""),
 };
 
 const char *
@@ -905,7 +900,7 @@ option_set_command(int argc, const char *argv[])
 		int index = find_remapped(obsolete, ARRAY_SIZE(obsolete), argv[0]);
 
 		if (index != -1)
-			return error("%s is obsolete; see tigrc(5) for how to set the %s column option",
+			return error("%s is obsolete; see crarc(5) for how to set the %s column option",
 				     obsolete[index][0], obsolete[index][1]);
 
 		if (!strcmp(argv[0], "read-git-colors"))
@@ -1143,9 +1138,9 @@ extern const char *builtin_config;
 enum status_code
 load_options(void)
 {
-	const char *tigrc_user = getenv("TIGRC_USER");
-	const char *tigrc_system = getenv("TIGRC_SYSTEM");
-	const char *tig_diff_opts = getenv("TIG_DIFF_OPTS");
+	const char *tigrc_user = getenv("CRARC_USER");
+	const char *tigrc_system = getenv("CRARC_SYSTEM");
+	const char *tig_diff_opts = getenv("CRA_DIFF_OPTS");
 	const bool diff_opts_from_args = !!opt_diff_options;
 	bool custom_tigrc_system = !!tigrc_system;
 	char buf[SIZEOF_STR];
@@ -1156,7 +1151,7 @@ load_options(void)
 		opt_diff_context = -3;
 
 	if (!custom_tigrc_system)
-		tigrc_system = SYSCONFDIR "/tigrc";
+		tigrc_system = SYSCONFDIR "/crarc";
 
 	if (!*tigrc_system ||
 	    (load_option_file(tigrc_system) == ERROR_FILE_DOES_NOT_EXIST && !custom_tigrc_system)) {
@@ -1175,8 +1170,8 @@ load_options(void)
 		const char *xdg_config_home = getenv("XDG_CONFIG_HOME");
 
 		if (!xdg_config_home || !*xdg_config_home)
-			tigrc_user = "~/.config/tig/config";
-		else if (!string_format(buf, "%s/tig/config", xdg_config_home))
+			tigrc_user = "~/.config/cra/config";
+		else if (!string_format(buf, "%s/cra/config", xdg_config_home))
 			return error("Failed to expand $XDG_CONFIG_HOME");
 		else
 			tigrc_user = buf;
@@ -1192,9 +1187,9 @@ load_options(void)
 
 		if (!string_format(buf, "%s", tig_diff_opts) ||
 		    !argv_from_string(diff_opts, &argc, buf))
-			return error("TIG_DIFF_OPTS contains too many arguments");
+			return error("CRA_DIFF_OPTS contains too many arguments");
 		else if (!argv_copy(&opt_diff_options, diff_opts))
-			return error("Failed to format TIG_DIFF_OPTS arguments");
+			return error("Failed to format CRA_DIFF_OPTS arguments");
 	}
 
 	if (!find_option_info_by_value(&opt_word_diff)->seen &&
@@ -1428,7 +1423,7 @@ save_options(const char *path)
 	if (!file)
 		return error("%s", strerror(errno));
 
-	if (!io_fprintf(file, "%s", "# Saved by Tig\n")
+	if (!io_fprintf(file, "%s", "# Saved by Cra\n")
 	    || !save_option_settings(file)
 	    || !save_option_keybindings(file)
 	    || !save_option_colors(file))
@@ -1470,7 +1465,7 @@ set_repo_config_option(char *name, char *value, enum status_code (*cmd)(int, con
 		code = cmd(argc, argv);
 
 	if (code != SUCCESS)
-		warn("Option 'tig.%s': %s", name, get_status_message(code));
+		warn("Option 'cra.%s': %s", name, get_status_message(code));
 }
 
 static struct line_info *
@@ -1580,13 +1575,13 @@ read_repo_config_option(char *name, size_t namelen, char *value, size_t valuelen
 		opt_status_show_untracked_files = !!strcmp(value, "no"),
 		opt_status_show_untracked_dirs = !strcmp(value, "all");
 
-	else if (!prefixcmp(name, "tig.color."))
+	else if (!prefixcmp(name, "cra.color."))
 		set_repo_config_option(name + 10, value, option_color_command);
 
-	else if (!prefixcmp(name, "tig.bind."))
+	else if (!prefixcmp(name, "cra.bind."))
 		set_repo_config_option(name + 9, value, option_bind_command);
 
-	else if (!prefixcmp(name, "tig."))
+	else if (!prefixcmp(name, "cra."))
 		set_repo_config_option(name + 4, value, option_set_command);
 
 	else if (!prefixcmp(name, "color."))
@@ -1615,14 +1610,9 @@ load_git_config(void)
 {
 	enum status_code code;
 	struct io io;
-	const char *config_list_argv[] = { "git", "config", "--list", NULL };
-	const char *git_worktree = getenv("GIT_WORK_TREE");
+	const char *config_list_argv[] = { "arc", "config", "--list", NULL };
 
 	code = io_run_load(&io, config_list_argv, "=", read_repo_config_option, NULL);
-
-	if (git_worktree && *git_worktree)
-		string_ncopy(repo.worktree, git_worktree, strlen(git_worktree));
-
 	return code;
 }
 

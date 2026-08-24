@@ -1,6 +1,6 @@
-# Tig default configuration
+# Cra default configuration
 #
-# Please see 'man tigrc' for a complete reference.
+# Please see 'man crarc' for a complete reference.
 
 # Settings
 # --------
@@ -102,7 +102,7 @@ set truncation-delimiter	= ~		# Character drawn for truncations, or "utf-8"
 #  - branch		: A branch.
 #  - stash		: The stash.
 #  - note		: Notes.
-#  - prefetch		: Refs prefetched by `git maintenance`.
+#  - prefetch		: Prefetched references.
 #  - other		: Any other reference.
 #
 # Expects a space-separated list of format strings.
@@ -113,7 +113,7 @@ set truncation-delimiter	= ~		# Character drawn for truncations, or "utf-8"
 # Prefix with `hide:` to not show that reference type, e.g. `hide:prefetch`.
 set reference-format		= [branch] <tag> {remote} ~replace~
 
-# Settings controlling how content is read from Git
+# Settings controlling how content is read from Arc
 set commit-order		= auto		# Enum: auto, default, topo, date, reverse (main)
 set status-show-untracked-dirs	= yes		# Show files in untracked directories? (status)
 set status-show-untracked-files	= yes		# Show untracked files?
@@ -121,13 +121,13 @@ set ignore-space		= no		# Enum: no, all, some, at-eol (diff)
 set show-notes			= yes		# When non-bool passed as `--show-notes=...` (diff)
 #set diff-context		= 3		# Number of lines to show around diff changes (diff)
 #set word-diff			= yes		# Show a word diff? (diff)
-#set diff-options		= -C		# User-defined options for `tig show` (git-diff)
+#set diff-options		= --patience	# User-defined options for `cra show` (arc diff)
 #set diff-highlight		= yes		# String (or bool): Path to diff-highlight script,
 						#                   defaults to `diff-highlight`.
 set diff-indicator		= yes		# Show diff +/- signs?
-#set blame-options		= -C -C -C	# User-defined options for `tig blame` (git-blame)
-set log-options			= --cc --stat	# User-defined options for `tig log` (git-log)
-#set main-options		= -n 1000	# User-defined options for `tig` (git-log)
+#set blame-options		= -w		# User-defined options for `cra blame` (arc blame)
+set log-options			= --stat	# User-defined options for `cra log` (arc log)
+set main-options		= -n 1000	# Bound initial history loading in large Arc mounts
 set mailmap			= yes		# Use .mailmap to show canonical name and email address?
 
 # Misc
@@ -150,29 +150,29 @@ set history-size		= 500		# Size of persistent history, 0 to disable
 set mouse			= no		# Enable mouse support?
 set mouse-scroll		= 3		# Number of lines to scroll via the mouse
 set mouse-wheel-cursor		= no		# Prefer moving the cursor to scrolling the view?
-set pgrp			= no		# Make tig process-group leader?
+set pgrp			= no		# Make cra process-group leader?
 set pager-autoscroll		= no		# Scroll the pager view automatically while loading?
 set recurse-tree		= no		# Show all files recursively in the tree view?
 
 # User-defined commands
 # ---------------------
-# These commands allow to run shell commands directly from within Tig.
+# These commands allow to run shell commands directly from within Cra.
 # Unless otherwise specified, commands are run in the foreground with
 # their console output shown (as if '!' was specified). When multiple
-# command options are specified their behavior are combined, e.g. "?<git
+# command options are specified their behavior are combined, e.g. "?<arc
 # commit" will prompt the user whether to execute the command and will
-# exit Tig after completion.
+# exit Cra after completion.
 #
 #   !	Run the command in the foreground with output shown.
 #   @	Run the command in the background with no output.
 #   ?	Prompt the user before executing the command.
 #   +	Run the command synchronously, and echo the first line of output to the status bar.
-#   <	Exit Tig after executing the command.
-#   >	Re-open Tig instantly in the last displayed view after executing the command.
+#   <	Exit Cra after executing the command.
+#   >	Re-open Cra instantly in the last displayed view after executing the command.
 #
-# User-defined commands can optionally refer to Tig's internal state
+# User-defined commands can optionally refer to Cra's internal state
 # using the following variable names, which are substituted before
-# commands are run (see 'man tigrc' for the full list):
+# commands are run (see 'man crarc' for the full list):
 #
 #   %(head)		The current ref ID. Defaults to HEAD
 #   %(commit)		The current commit ID.
@@ -188,21 +188,21 @@ set recurse-tree		= no		# Show all files recursively in the tree view?
 #   %(revargs)		The revision arguments passed on the command line.
 #   %(fileargs)		The file arguments passed on the command line.
 #   %(cmdlineargs)	All other options passed on the command line.
-#   %(diffargs)		The diff options from `diff-options` or `TIG_DIFF_OPTS`
+#   %(diffargs)		The diff options from `diff-options` or `CRA_DIFF_OPTS`
 #   %(prompt)		Prompt for the argument value.
 #   %(repo:head)	The name of the checked out branch.
 #   %(repo:remote)	The remote name associated with the checked out branch.
 #   %(repo:upstream)	The upstream branch associated with the checked out branch.
 
-bind main	C	?git cherry-pick %(commit)
-bind status	C	!git commit
-bind stash	A	?git stash apply %(stash)
-bind stash	P	?git stash pop %(stash)
-bind stash	!	?git stash drop %(stash)
-bind refs	C	?git checkout %(branch)
-bind refs	!	?git branch -D %(branch)
-bind reflog	C	?git checkout %(branch)
-bind reflog	!	?git reset --hard %(commit)
+bind main	C	?arc cherry-pick %(commit)
+bind status	C	!arc commit
+bind stash	A	?arc stash apply %(stash)
+bind stash	P	?arc stash pop %(stash)
+bind stash	!	?arc stash drop %(stash)
+bind refs	C	?arc checkout %(branch)
+bind refs	!	?arc branch -D %(branch)
+bind reflog	C	?arc checkout %(branch)
+bind reflog	!	?arc reset --hard %(commit)
 
 # Normal commands
 # ---------------
@@ -245,7 +245,7 @@ bind generic	<C-C>	quit			# Close all views and quit
 # View specific
 bind status	u	status-update		# Stage/unstage changes in file
 bind status	!	status-revert		# Revert changes in file
-bind status	M	status-merge		# Open git-mergetool(1)
+bind status	M	status-merge		# Open arc mergetool
 # bind status	???	:toggle status		# Show short or long status labels
 bind stage	u	status-update		# Stage/unstage current diff (c)hunk
 bind stage	1	stage-update-line	# Stage/unstage current line
@@ -339,7 +339,7 @@ bind generic	e	edit			# Open in editor
 bind generic	:	prompt			# Open the prompt
 bind generic	<C-L>	screen-redraw		# Redraw the screen
 bind generic	z	stop-loading		# Stop all loading views
-bind generic	v	show-version		# Show Tig version
+bind generic	v	show-version		# Show Cra version
 
 # Colors
 # ------
@@ -358,7 +358,7 @@ bind generic	v	show-version		# Show Tig version
 #	color "    Signed-off-by"	yellow	default
 #
 # Note the four leading spaces in the string to match. This is because
-# Git automatically indents commit messages by four spaces.
+# Arc automatically indents commit messages by four spaces.
 
 color "---"			blue	default
 color "diff --"			yellow	default
@@ -476,7 +476,7 @@ color palette-13		red	default	bold
 color graph-commit		blue	default
 color search-result		black	yellow
 
-# Mappings for colors read from git configuration.
+# Mappings for colors read from repository configuration.
 # Set to "no" to disable.
 set git-colors = \
 	branch.current=main-head \

@@ -72,8 +72,8 @@ blame_open(struct view *view, enum open_flags flags)
 {
 	struct blame_state *state = view->private;
 	const char *blame_argv[] = {
-		"git", "blame", encoding_arg, "%(blameargs)", "-p",
-			view->env->ref, "--", view->env->file, NULL
+		"arc", "blame", "%(blameargs)", view->env->ref,
+			view->env->file, NULL
 	};
 	enum status_code code;
 	size_t i;
@@ -126,12 +126,13 @@ blame_open(struct view *view, enum open_flags flags)
 
 	if (!view->env->file[0] && opt_file_args && !opt_file_args[1]) {
 		const char *ls_tree_argv[] = {
-			"git", "ls-tree", "-d", "-z", *view->env->ref ? view->env->ref : "HEAD", opt_file_args[0], NULL
+			"arc", "ls-tree", "-d", *view->env->ref ? view->env->ref : "HEAD", opt_file_args[0], NULL
 		};
 		char buf[SIZEOF_STR] = "";
 
-		/* Check that opt_file_args[0] is not a directory */
-		if (!io_run_buf(ls_tree_argv, buf, sizeof(buf), NULL, false)) {
+		/* Arc returns a matching blob even with -d, so inspect its type. */
+		if (io_run_buf(ls_tree_argv, buf, sizeof(buf), NULL, false) &&
+		    strstr(buf, " blob ")) {
 			if (!string_concat_path(view->env->file, (opt_file_args[0][0] == '/' ? "" : repo.prefix), opt_file_args[0]))
 				return error("Failed to setup the blame view");
 		} else if (is_initial_view(view))
@@ -272,6 +273,85 @@ blame_read(struct view *view, struct buffer *buf, bool force_stop)
 }
 
 static bool
+blame_read_line(struct view *view, char *line)
+{
+	struct buffer buf = { line, strlen(line) };
+
+	return blame_read(view, &buf, false);
+}
+
+static bool
+blame_read_arc(struct view *view, struct buffer *buf, bool force_stop)
+{
+	char line[SIZEOF_STR];
+	char empty[] = "\t";
+	const char *id;
+	char *author;
+	char *date;
+	char *lineno;
+	char *text;
+	char *end;
+	unsigned long line_number;
+	bool local;
+
+	if (!buf)
+		return blame_read(view, NULL, force_stop);
+	local = !prefixcmp(buf->data, "staged ") ||
+		!prefixcmp(buf->data, "unstaged ");
+	if (local) {
+		id = NULL_ID;
+		author = "Not Committed Yet";
+		lineno = strchr(buf->data, ' ');
+	} else {
+		if (buf->size < SIZEOF_REV)
+			return false;
+		buf->data[SIZEOF_REV - 1] = 0;
+		if (!iscommit(buf->data))
+			return false;
+		id = buf->data;
+		author = buf->data + SIZEOF_REV;
+		while (*author == ' ')
+			author++;
+		date = strchr(author, ' ');
+		if (!date)
+			return false;
+		*date++ = 0;
+		while (*date == ' ')
+			date++;
+		lineno = strchr(date, ' ');
+		if (!lineno)
+			return false;
+		*lineno++ = 0;
+	}
+	if (!lineno)
+		return false;
+	while (*lineno == ' ')
+		lineno++;
+	line_number = strtoul(lineno, &end, 10);
+	if (end == lineno)
+		return false;
+	text = end;
+	if (!*text)
+		text = empty;
+	else
+		*text = '\t';
+
+	return string_format(line, "%s %lu %lu 1", id, line_number, line_number) &&
+	       blame_read_line(view, line) &&
+	       string_format(line, "author %s", author) &&
+	       blame_read_line(view, line) &&
+	       string_format(line, "author-mail <>") &&
+	       blame_read_line(view, line) &&
+	       string_format(line, "committer %s", author) &&
+	       blame_read_line(view, line) &&
+	       string_format(line, "committer-mail <>") &&
+	       blame_read_line(view, line) &&
+	       string_format(line, "filename %s", view->env->file) &&
+	       blame_read_line(view, line) &&
+	       blame_read_line(view, text);
+}
+
+static bool
 blame_get_column_data(struct view *view, const struct line *line, struct view_column_data *column_data)
 {
 	struct blame *blame = line->data;
@@ -312,7 +392,7 @@ setup_blame_parent_line(struct view *view, struct blame *blame)
 	char from[SIZEOF_REF + SIZEOF_STR];
 	char to[SIZEOF_REF + SIZEOF_STR];
 	const char *diff_tree_argv[] = {
-		"git", "diff", encoding_arg, "--no-ext-diff",
+		"arc", "diff", encoding_arg, "--no-ext-diff",
 			"--no-color", "-U0", from, to, "--", NULL
 	};
 	struct io io;
@@ -519,7 +599,7 @@ static struct view_ops blame_ops = {
 	VIEW_SEND_CHILD_ENTER | VIEW_BLAME_LIKE | VIEW_REFRESH,
 	sizeof(struct blame_state),
 	blame_open,
-	blame_read,
+	blame_read_arc,
 	view_column_draw,
 	blame_request,
 	view_column_grep,

@@ -414,6 +414,56 @@ main_add_reflog(struct view *view, struct main_state *state, char *reflog)
 	return true;
 }
 
+static bool
+main_read_line(struct view *view, char *line)
+{
+	struct buffer buf = { line, strlen(line) };
+
+	return main_read(view, &buf, false);
+}
+
+static bool
+main_read_arc(struct view *view, char *line)
+{
+	char raw[SIZEOF_STR];
+	char empty[] = "";
+	char *parents = strchr(line, '\t');
+	char *author;
+	char *timestamp;
+	char *title;
+	char *pos;
+
+	if (!parents)
+		return false;
+	*parents++ = 0;
+	author = strchr(parents, '\t');
+	if (!author)
+		return false;
+	*author++ = 0;
+	timestamp = strchr(author, '\t');
+	if (!timestamp)
+		return false;
+	*timestamp++ = 0;
+	title = strchr(timestamp, '\t');
+	if (!title)
+		return false;
+	*title++ = 0;
+
+	for (pos = parents; *pos; pos++)
+		if (*pos == ',')
+			*pos = ' ';
+
+	return string_format(raw, "%s%s%s", line, *parents ? " " : "", parents) &&
+	       main_read_line(view, raw) &&
+	       string_format(raw, "author %s <> %s +0000", author, timestamp) &&
+	       main_read_line(view, raw) &&
+	       string_format(raw, "committer %s <> %s +0000", author, timestamp) &&
+	       main_read_line(view, raw) &&
+	       main_read_line(view, empty) &&
+	       string_format(raw, "    %s", title) &&
+	       main_read_line(view, raw);
+}
+
 /* Reads git log --pretty=raw output and parses it into the commit struct. */
 bool
 main_read(struct view *view, struct buffer *buf, bool force_stop)
@@ -427,8 +477,12 @@ main_read(struct view *view, struct buffer *buf, bool force_stop)
 	if (!buf) {
 		main_flush_commit(view, commit);
 
-		if (!force_stop && failed_to_load_initial_view(view))
-			die("No revisions match the given arguments.");
+		if (!force_stop && failed_to_load_initial_view(view)) {
+			if (opt_file_args)
+				report("No arc history matches the selected path");
+			else
+				die("No revisions match the given arguments.");
+		}
 		if (view->lines > 0) {
 			struct commit *last = view->line[view->lines - 1].data;
 
@@ -445,6 +499,9 @@ main_read(struct view *view, struct buffer *buf, bool force_stop)
 	}
 
 	line = buf->data;
+
+	if (!prefixcmp(line, "commit ") && strchr(line, '\t'))
+		return main_read_arc(view, line);
 
 	/* Skip remaining lines of notes until <ETX>. */
 	if (state->has_notes) {

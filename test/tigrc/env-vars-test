@@ -5,17 +5,17 @@
 export LINES=8
 
 # Disable built-in configuration
-export TIGRC_SYSTEM=does-not-exist
+export CRARC_SYSTEM=does-not-exist
 
 # Use non-default user configuration
-export TIGRC_USER="$HOME/.tigrc.safe"
+export CRARC_USER="$HOME/.tigrc.safe"
 
 file "$HOME/.tigrc.safe" <<EOF
 bind generic : prompt		# Must have prompt mapping to execute script
 EOF
 
 tigrc <<EOF
-This will generate an error if Tig reads this file instead of $TIGRC_USER.
+This will generate an error if Tig reads this file instead of $CRARC_USER.
 Asserted with the empty stderr below.
 EOF
 

@@ -1,13 +1,13 @@
 #!/bin/sh
 
 . libtest.sh
-. libgit.sh
+. libarc.sh
+
+mock_arc ''
 
 steps '
 	:save-display diff.screen
 '
-
-git_init
 
 test_tig show <<EOF
 commit 1b4c64b595aeb4de1d317d669faacd3c1d82f0b0

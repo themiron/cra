@@ -15,13 +15,71 @@
 #include "tig/draw.h"
 #include "tig/main.h"
 #include "tig/diff.h"
+#include "tig/parse.h"
+#include "tig/reflog.h"
 #include "tig/repo.h"
+
+struct stash_state {
+	struct main_state main;
+	char id[SIZEOF_REV];
+	char author[SIZEOF_STR];
+	char date[SIZEOF_STR];
+	char description[SIZEOF_STR];
+	unsigned long num;
+};
+
+static bool
+stash_read(struct view *view, struct buffer *buf, bool force_stop)
+{
+	struct stash_state *state = view->private;
+	char *line;
+
+	if (!buf)
+		return main_read(view, NULL, force_stop);
+
+	line = buf->data;
+	while (isspace((unsigned char)*line))
+		line++;
+	if (!strcmp(line, "{")) {
+		state->id[0] = 0;
+		state->author[0] = 0;
+		state->date[0] = 0;
+		state->description[0] = 0;
+		return true;
+	}
+	if (!strcmp(line, "},") || !strcmp(line, "}")) {
+		char ref[SIZEOF_REF];
+
+		if (!string_format(ref, "refs/stash@{%lu}", state->num++) ||
+		    !state->id[0] || !state->author[0] || !state->date[0] ||
+		    !state->description[0])
+			return false;
+		return reflog_read_entry(view, state->id, ref, state->author,
+					 state->date, state->description);
+	}
+
+	if (!prefixcmp(line, "\"id\""))
+		return parse_json_string(line, "\"id\"", state->id,
+					 sizeof(state->id), true);
+	if (!prefixcmp(line, "\"author\""))
+		return parse_json_string(line, "\"author\"", state->author,
+					 sizeof(state->author), true);
+	if (!prefixcmp(line, "\"time\""))
+		return parse_json_string(line, "\"time\"", state->date,
+					 sizeof(state->date), true);
+	if (!prefixcmp(line, "\"description\""))
+		return parse_json_string(line, "\"description\"",
+					 state->description,
+					 sizeof(state->description), true);
+	return true;
+}
 
 static enum status_code
 stash_open(struct view *view, enum open_flags flags)
 {
-	static const char *stash_argv[] = { "git", "stash", "list",
-		encoding_arg, "--no-color", "--pretty=raw", NULL };
+	static const char *stash_argv[] = {
+		"arc", "stash", "list", "--json", NULL
+	};
 	const char **argv = NULL;
 	struct main_state *state = view->private;
 	enum status_code code;
@@ -78,10 +136,8 @@ stash_request(struct view *view, enum request request, struct line *line)
 		if (!view_is_displayed(diff) ||
 		    strcmp(view->env->stash, diff->ref)) {
 			const char *diff_argv[] = {
-				"git", "stash", "show", encoding_arg, "--pretty=fuller",
-					"--patch-with-stat", diff_context_arg(),
-					ignore_space_arg(), word_diff_arg(), DIFF_ARGS,
-					"%(cmdlineargs)", "--no-color", "%(stash)", NULL
+				"arc", "stash", "show", "--git", diff_context_arg(),
+					"%(cmdlineargs)", "%(stash)", NULL
 			};
 
 			if (!argv_format(diff_view.env, &diff_view.argv, diff_argv, 0))
@@ -100,9 +156,9 @@ static struct view_ops stash_ops = {
 	"stash",
 	"",
 	VIEW_SEND_CHILD_ENTER | VIEW_REFRESH,
-	sizeof(struct main_state),
+	sizeof(struct stash_state),
 	stash_open,
-	main_read,
+	stash_read,
 	view_column_draw,
 	stash_request,
 	view_column_grep,

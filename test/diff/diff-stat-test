@@ -1,7 +1,9 @@
 #!/bin/sh
 
 . libtest.sh
-. libgit.sh
+. libarc.sh
+
+mock_arc ''
 
 export COLUMNS=181
 
@@ -12,8 +14,6 @@ steps '
 tigrc <<EOF
 set line-graphics = utf-8
 EOF
-
-in_work_dir create_repo_from_tgz "$base_dir/files/scala-js-benchmarks.tgz"
 
 test_tig show <<EOF
 commit 1b4c64b595aeb4de1d317d669faacd3c1d82f0b0

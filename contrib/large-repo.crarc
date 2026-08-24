@@ -1,12 +1,12 @@
-# Settings for speeding up Tig in large repositories
+# Settings for speeding up Cra in large repositories
 #
 # To use these settings copy the file to your HOME directory and include
-# it from your ~/.tigrc file:
+# it from your ~/.crarc file:
 #
-#	$ cp contrib/large-repo.tigrc ~/.tigrc.large
-#	$ echo "source ~/.tigrc.large" >> ~/.tigrc
+#	$ cp contrib/large-repo.crarc ~/.crarc.large
+#	$ echo "source ~/.crarc.large" >> ~/.crarc
 
-# Use Git's default (reverse chronological) order, never automatically
+# Use Arc's default (reverse chronological) order, never automatically
 # use topo-order for the commit graph
 set commit-order = default
  
